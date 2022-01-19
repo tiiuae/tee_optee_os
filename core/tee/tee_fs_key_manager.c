@@ -142,7 +142,7 @@ static TEE_Result tee_fs_init_key_manager(void)
 
 	COMPILE_TIME_ASSERT(TEE_FS_KM_SSK_SIZE <= HUK_SUBKEY_MAX_LEN);
 
-	res = huk_subkey_derive(HUK_SUBKEY_SSK, NULL, 0,
+	res = huk_subkey_derive(HUK_SUBKEY_SSK, NULL, 0,  /* TODO, this need to be implement*/
 				tee_fs_ssk.key, sizeof(tee_fs_ssk.key));
 	if (res == TEE_SUCCESS)
 		tee_fs_ssk.is_init = 1;
@@ -273,5 +273,6 @@ wipe:
 	memzero_explicit(iv, sizeof(iv));
 	return res;
 }
-
+#if 0
 service_init_late(tee_fs_init_key_manager);
+#endif
