@@ -34,7 +34,7 @@ int ocb_encrypt(ocb_state *ocb, const unsigned char *pt, unsigned char *ct)
    if ((err = cipher_is_valid(ocb->cipher)) != CRYPT_OK) {
       return err;
    }
-   if (ocb->block_len != cipher_descriptor[ocb->cipher].block_length) {
+   if (ocb->block_len != cipher_descriptor[ocb->cipher]->block_length) {
       return CRYPT_INVALID_ARG;
    }
 
@@ -50,7 +50,7 @@ int ocb_encrypt(ocb_state *ocb, const unsigned char *pt, unsigned char *ct)
    for (x = 0; x < ocb->block_len; x++) {
        tmp[x] = pt[x] ^ Z[x];
    }
-   if ((err = cipher_descriptor[ocb->cipher].ecb_encrypt(tmp, ct, &ocb->key)) != CRYPT_OK) {
+   if ((err = cipher_descriptor[ocb->cipher]->ecb_encrypt(tmp, ct, &ocb->key)) != CRYPT_OK) {
       return err;
    }
    for (x = 0; x < ocb->block_len; x++) {

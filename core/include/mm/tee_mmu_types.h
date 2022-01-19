@@ -31,8 +31,8 @@
 #define TEE_MATTR_GLOBAL		BIT(10)
 #define TEE_MATTR_SECURE		BIT(11)
 
-#define TEE_MATTR_MEM_TYPE_MASK	U(0x7)
-#define TEE_MATTR_MEM_TYPE_SHIFT	U(12)
+#define TEE_MATTR_MEM_TYPE_MASK	 	7u
+#define TEE_MATTR_MEM_TYPE_SHIFT	12u
 /* These are shifted TEE_MATTR_MEM_TYPE_SHIFT */
 
 /*
@@ -45,9 +45,9 @@
  * memory type matches the nGnRnE memory type.
  * https://developer.arm.com/documentation/den0024/a/Memory-Ordering/Memory-types/Device-memory
  */
-#define TEE_MATTR_MEM_TYPE_DEV	        U(0) /* Device-nGnRE */
-#define TEE_MATTR_MEM_TYPE_CACHED	U(1)
-#define TEE_MATTR_MEM_TYPE_STRONGLY_O	U(2) /* Device-nGnRnE  */
+#define TEE_MATTR_MEM_TYPE_DEV			0u /* Device-nGnRE */
+#define TEE_MATTR_MEM_TYPE_CACHED		1u
+#define TEE_MATTR_MEM_TYPE_STRONGLY_O	2u /* Device-nGnRnE  */
 
 #define TEE_MATTR_GUARDED		BIT(15)
 
