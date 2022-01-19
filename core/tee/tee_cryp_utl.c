@@ -213,4 +213,6 @@ static TEE_Result tee_cryp_init(void)
 
 	return TEE_SUCCESS;
 }
+#if 0
 service_init(tee_cryp_init);
+#endif

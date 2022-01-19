@@ -371,7 +371,7 @@ typedef struct {
 
 
 /** cipher descriptor table, last entry has "name == NULL" to mark the end of table */
-extern const struct ltc_cipher_descriptor {
+extern struct ltc_cipher_descriptor {
    /** name of cipher */
    const char *name;
    /** internal ID */

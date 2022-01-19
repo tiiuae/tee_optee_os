@@ -203,7 +203,7 @@ typedef union Hash_state {
 } hash_state;
 
 /** hash descriptor */
-extern  const struct ltc_hash_descriptor {
+extern struct ltc_hash_descriptor {
     /** name of hash */
     const char *name;
     /** internal ID */

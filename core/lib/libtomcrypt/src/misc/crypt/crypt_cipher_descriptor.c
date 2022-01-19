@@ -14,7 +14,7 @@
   Stores the cipher descriptor table, Tom St Denis
 */
 
-const struct ltc_cipher_descriptor *cipher_descriptor[TAB_SIZE];
+struct ltc_cipher_descriptor *cipher_descriptor[TAB_SIZE];
 
 LTC_MUTEX_GLOBAL(ltc_cipher_mutex)
 
