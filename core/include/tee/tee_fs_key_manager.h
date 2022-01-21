@@ -26,5 +26,5 @@ TEE_Result tee_fs_crypt_block(const TEE_UUID *uuid, uint8_t *out,
 TEE_Result tee_fs_fek_crypt(const TEE_UUID *uuid, TEE_OperationMode mode,
 			    const uint8_t *in_key, size_t size,
 			    uint8_t *out_key);
-
+TEE_Result tee_fs_init_key_manager(void);
 #endif

@@ -136,7 +136,7 @@ static TEE_Result generate_fek(uint8_t *key, uint8_t len)
 	return crypto_rng_read(key, len);
 }
 
-static TEE_Result tee_fs_init_key_manager(void)
+TEE_Result tee_fs_init_key_manager(void)
 {
 	TEE_Result res = TEE_SUCCESS;
 
