@@ -37,7 +37,7 @@ int register_hash(const struct ltc_hash_descriptor *hash)
    /* find a blank spot */
    for (x = 0; x < TAB_SIZE; x++) {
        if (hash_descriptor[x] == NULL) {
-          hash_descriptor[x] = hash;
+          hash_descriptor[x] = (struct ltc_hash_descriptor*)hash;
           LTC_MUTEX_UNLOCK(&ltc_hash_mutex);
           return x;
        }
