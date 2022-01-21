@@ -199,7 +199,7 @@ __weak void plat_rng_init(void)
 	}
 }
 
-static TEE_Result tee_cryp_init(void)
+TEE_Result tee_cryp_init(void)
 {
 	TEE_Result res = crypto_init();
 

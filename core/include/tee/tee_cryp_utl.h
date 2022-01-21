@@ -31,4 +31,6 @@ void plat_prng_add_jitter_entropy(enum crypto_rng_src sid, unsigned int *pnum);
 
 void plat_rng_init(void);
 
+TEE_Result tee_cryp_init(void);
+
 #endif
