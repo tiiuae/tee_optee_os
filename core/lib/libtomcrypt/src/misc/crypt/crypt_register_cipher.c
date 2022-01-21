@@ -37,7 +37,7 @@ int register_cipher(const struct ltc_cipher_descriptor *cipher)
    /* find a blank spot */
    for (x = 0; x < TAB_SIZE; x++) {
        if (cipher_descriptor[x] == NULL) {
-          cipher_descriptor[x] = cipher;
+          cipher_descriptor[x] = (struct ltc_cipher_descriptor*)cipher;
           LTC_MUTEX_UNLOCK(&ltc_cipher_mutex);
           return x;
        }
