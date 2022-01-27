@@ -125,9 +125,11 @@ static void tee_ltc_reg_algs(void)
 static void ltc_init(void)
 {
 #if defined(_CFG_CORE_LTC_ACIPHER)
-	init_mp_tomcrypt();
+	/* init_mp_tomcrypt(); */
 #endif
 	tee_ltc_reg_algs();
+	crypt_mp_init("L");
+	register_prng(&fortuna_desc);
 }
 
 #if defined(CFG_CRYPTOLIB_NAME_tomcrypt)

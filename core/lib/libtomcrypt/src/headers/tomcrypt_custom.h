@@ -79,18 +79,18 @@
 
 /* Easy button? */
 #ifdef LTC_EASY
-   #define LTC_NO_CIPHERS
+   //#define LTC_NO_CIPHERS
    #define LTC_RIJNDAEL
    #define LTC_BLOWFISH
    #define LTC_DES
    #define LTC_CAST5
 
-   #define LTC_NO_MODES
+   //#define LTC_NO_MODES
    #define LTC_ECB_MODE
    #define LTC_CBC_MODE
    #define LTC_CTR_MODE
 
-   #define LTC_NO_HASHES
+   ///#define LTC_NO_HASHES
    #define LTC_SHA1
    #define LTC_SHA3
    #define LTC_SHA512
@@ -104,15 +104,15 @@
    #define LTC_OMAC
    #define LTC_CCM_MODE
 
-   #define LTC_NO_PRNGS
+   //#define LTC_NO_PRNGS
    #define LTC_SPRNG
    #define LTC_YARROW
-   #define LTC_DEVRANDOM
-   #define LTC_TRY_URANDOM_FIRST
+   //#define LTC_DEVRANDOM
+   //#define LTC_TRY_URANDOM_FIRST
    #define LTC_RNG_GET_BYTES
    #define LTC_RNG_MAKE_PRNG
 
-   #define LTC_NO_PK
+   //#define LTC_NO_PK
    #define LTC_MRSA
    #define LTC_MECC
 
@@ -164,7 +164,7 @@
 #ifndef LTC_NO_MATH
 
 /* LibTomMath */
-/* #define LTM_DESC */
+#define LTM_DESC
 
 /* TomsFastMath */
 /* #define TFM_DESC */
@@ -336,10 +336,10 @@
 #define LTC_SOBER128
 
 /* the *nix style /dev/random device */
-#define LTC_DEVRANDOM
+//#define LTC_DEVRANDOM
 /* try /dev/urandom before trying /dev/random
  * are you sure you want to disable this? http://www.2uo.de/myths-about-urandom/ */
-#define LTC_TRY_URANDOM_FIRST
+///#define LTC_TRY_URANDOM_FIRST
 /* rng_get_bytes() */
 #define LTC_RNG_GET_BYTES
 /* rng_make_prng() */
@@ -401,6 +401,7 @@
 
 #ifndef LTC_FORTUNA_POOLS
 /* number of pools (4..32) can save a bit of ram by lowering the count */
+
 #define LTC_FORTUNA_POOLS 32
 #endif
 
