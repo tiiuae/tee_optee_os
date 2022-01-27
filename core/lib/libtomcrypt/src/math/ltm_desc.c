@@ -113,6 +113,7 @@ static ltc_mp_digit get_digit(void *a, int n)
    mp_int *A;
    LTC_ARGCHK(a != NULL);
    A = a;
+   printf("%s n= %d, bignum->top %d \n",__func__,n, A->used);
    return (n >= A->used || n < 0) ? 0 : A->dp[n];
 }
 
@@ -185,14 +186,14 @@ static int write_radix(void *a, char *b, int radix)
 {
    LTC_ARGCHK(a != NULL);
    LTC_ARGCHK(b != NULL);
-   return mpi_to_ltc_error(mp_toradix(a, b, radix));
+   return mpi_to_ltc_error(mp_to_hex(a, b, radix));
 }
 
 /* get size as unsigned char string */
 static unsigned long unsigned_size(void *a)
 {
    LTC_ARGCHK(a != NULL);
-   return mp_unsigned_bin_size(a);
+   return mp_ubin_size(a);
 }
 
 /* store */
@@ -200,7 +201,10 @@ static int unsigned_write(void *a, unsigned char *b)
 {
    LTC_ARGCHK(a != NULL);
    LTC_ARGCHK(b != NULL);
-   return mpi_to_ltc_error(mp_to_unsigned_bin(a, b));
+   size_t maxlen = 8;
+   size_t written = 0;
+
+   return mpi_to_ltc_error(mp_to_ubin(a, b, maxlen, &written));
 }
 
 /* read */
@@ -208,7 +212,7 @@ static int unsigned_read(void *a, unsigned char *b, unsigned long len)
 {
    LTC_ARGCHK(a != NULL);
    LTC_ARGCHK(b != NULL);
-   return mpi_to_ltc_error(mp_read_unsigned_bin(a, b, len));
+   return mpi_to_ltc_error(mp_from_ubin(a, b, len));
 }
 
 /* add */
@@ -423,7 +427,7 @@ static int isprime(void *a, int b, int *c)
    LTC_ARGCHK(a != NULL);
    LTC_ARGCHK(c != NULL);
    b = mp_prime_rabin_miller_trials(mp_count_bits(a));
-   err = mpi_to_ltc_error(mp_prime_is_prime(a, b, c));
+   err = mpi_to_ltc_error(mp_prime_is_prime(a, b, (bool*)c));
    *c = (*c == MP_YES) ? LTC_MP_YES : LTC_MP_NO;
    return err;
 }
@@ -440,90 +444,83 @@ static int set_rand(void *a, int size)
 
 const ltc_math_descriptor ltm_desc = {
 
-   "LibTomMath",
-   (int)MP_DIGIT_BIT,
+   .name ="LibTomMath",
+   .bits_per_digit = (int)MP_DIGIT_BIT,
 
-   &init,
-   &init_copy,
-   &deinit,
+   .init = init,
+   .init_copy = init_copy,
+   .deinit = deinit,
 
-   &neg,
-   &copy,
+   .neg = neg,
+   .copy = copy,
 
-   &set_int,
-   &get_int,
-   &get_digit,
-   &get_digit_count,
-   &compare,
-   &compare_d,
-   &count_bits,
-   &count_lsb_bits,
-   &twoexpt,
+   .set_int = set_int,
+   .get_int = get_int,
+   .get_digit = get_digit,
+   .get_digit_count = get_digit_count,
+   .compare = compare,
+   .compare_d = compare_d,
+   .count_bits = count_bits,
+   .count_lsb_bits = count_lsb_bits,
+   .twoexpt = twoexpt,
 
-   &read_radix,
-   &write_radix,
-   &unsigned_size,
-   &unsigned_write,
-   &unsigned_read,
+   .read_radix = read_radix,
+	.write_radix = write_radix,
+	.unsigned_size = unsigned_size,
+	.unsigned_write = unsigned_write,
+	.unsigned_read = unsigned_read,
 
-   &add,
-   &addi,
-   &sub,
-   &subi,
-   &mul,
-   &muli,
-   &sqr,
-   &sqrtmod_prime,
-   &divide,
-   &div_2,
-   &modi,
-   &gcd,
-   &lcm,
+	.add = add,
+	.addi = addi,
+	.sub = sub,
+	.subi = subi,
+	.mul = mul,
+	.muli = muli,
+	.sqr = sqr,
+	.mpdiv = divide,
+	.div_2 = div_2,
+	.modi = modi,
+	.gcd = gcd,
+	.lcm = lcm,
 
-   &mulmod,
-   &sqrmod,
-   &invmod,
+	.mulmod = mulmod,
+	.sqrmod = sqrmod,
+	.invmod = invmod,
 
-   &montgomery_setup,
-   &montgomery_normalization,
-   &montgomery_reduce,
-   &montgomery_deinit,
+	.montgomery_setup = montgomery_setup,
+	.montgomery_normalization = montgomery_normalization,
+	.montgomery_reduce = montgomery_reduce,
+	.montgomery_deinit = montgomery_deinit,
 
-   &exptmod,
-   &isprime,
+	.exptmod = exptmod,
+	.isprime = isprime,
 
 #ifdef LTC_MECC
 #ifdef LTC_MECC_FP
-   &ltc_ecc_fp_mulmod,
+	.ecc_ptmul = ltc_ecc_fp_mulmod,
 #else
-   &ltc_ecc_mulmod,
-#endif
-   &ltc_ecc_projective_add_point,
-   &ltc_ecc_projective_dbl_point,
-   &ltc_ecc_map,
+	.ecc_ptmul = ltc_ecc_mulmod,
+#endif /* LTC_MECC_FP */
+	.ecc_ptadd = ltc_ecc_projective_add_point,
+	.ecc_ptdbl = ltc_ecc_projective_dbl_point,
+	.ecc_map = ltc_ecc_map,
 #ifdef LTC_ECC_SHAMIR
 #ifdef LTC_MECC_FP
-   &ltc_ecc_fp_mul2add,
+	.ecc_mul2add = ltc_ecc_fp_mul2add,
 #else
-   &ltc_ecc_mul2add,
+	.ecc_mul2add = ltc_ecc_mul2add,
 #endif /* LTC_MECC_FP */
-#else
-   NULL,
 #endif /* LTC_ECC_SHAMIR */
-#else
-   NULL, NULL, NULL, NULL, NULL,
 #endif /* LTC_MECC */
 
 #ifdef LTC_MRSA
-   &rsa_make_key,
-   &rsa_exptmod,
-#else
-   NULL, NULL,
+	.rsa_keygen = rsa_make_key,
+	.rsa_me = rsa_exptmod,
 #endif
-   &addmod,
-   &submod,
+	.addmod = addmod,
+	.submod = submod,
 
-   &set_rand,
+   .rand = set_rand,
 
 };
 
