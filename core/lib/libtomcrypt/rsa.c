@@ -6,15 +6,20 @@
 #include <crypto/crypto.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <tee_api_types.h>
 #include <tee_api_defines_extensions.h>
 #include <tee/tee_cryp_utl.h>
 #include <trace.h>
+#include <utils/util.h>
+#include <utils/zf_log.h>
 #include <utee_defines.h>
 
 #include "acipher_helpers.h"
 
+static prng_state prng_fortuna;
 
+//#define ZF_LOGI  printf
 /*
  * Compute the LibTomCrypt "hashindex" given a TEE Algorithm "algo"
  * Return
@@ -85,6 +90,7 @@ static TEE_Result tee_algo_to_ltc_hashindex(uint32_t algo, int *ltc_hashindex)
 TEE_Result crypto_acipher_alloc_rsa_keypair(struct rsa_keypair *s,
 					    size_t key_size_bits __unused)
 {
+	printf("%s %d\n", __func__, __LINE__);
 	memset(s, 0, sizeof(*s));
 	if (!bn_alloc_max(&s->e))
 		return TEE_ERROR_OUT_OF_MEMORY;
@@ -147,17 +153,26 @@ void crypto_acipher_free_rsa_keypair(struct rsa_keypair *s)
 
 TEE_Result crypto_acipher_gen_rsa_key(struct rsa_keypair *key, size_t key_size)
 {
-	TEE_Result res;
+	TEE_Result res = -1;
 	rsa_key ltc_tmp_key;
-	int ltc_res;
+	int ltc_res = -1;
 
+	ZF_LOGI("%s %d\n", __func__, __LINE__);
+	int wprng = find_prng("fortuna");
+	ZF_LOGI("%s %d\n", __func__, __LINE__);
+	rng_make_prng(128,wprng, &prng_fortuna, NULL);
+	ZF_LOGI("%s %d\n", __func__, __LINE__);
 	/* Generate a temporary RSA key */
-	ltc_res = rsa_make_key_bn_e(NULL, find_prng("prng_crypto"),
-				    key_size / 8, key->e, &ltc_tmp_key);
+
+	ltc_res = rsa_make_key_bn_e(&prng_fortuna, wprng,
+				    key_size / 8, key->e,&ltc_tmp_key);
+	printf("%s %d\n", __func__, __LINE__);
 	if (ltc_res != CRYPT_OK) {
 		res = TEE_ERROR_BAD_PARAMETERS;
+		ZF_LOGI("%s %d", __func__, __LINE__);
 	} else if ((size_t)mp_count_bits(ltc_tmp_key.N) != key_size) {
 		rsa_free(&ltc_tmp_key);
+		ZF_LOGI("%s %d", __func__, __LINE__);
 		res = TEE_ERROR_BAD_PARAMETERS;
 	} else {
 		/* Copy the key */
