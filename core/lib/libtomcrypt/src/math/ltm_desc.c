@@ -113,7 +113,6 @@ static ltc_mp_digit get_digit(void *a, int n)
    mp_int *A;
    LTC_ARGCHK(a != NULL);
    A = a;
-   printf("%s n= %d, bignum->top %d \n",__func__,n, A->used);
    return (n >= A->used || n < 0) ? 0 : A->dp[n];
 }
 
@@ -201,7 +200,7 @@ static int unsigned_write(void *a, unsigned char *b)
 {
    LTC_ARGCHK(a != NULL);
    LTC_ARGCHK(b != NULL);
-   size_t maxlen = 8;
+   size_t maxlen = SIZE_MAX;
    size_t written = 0;
 
    return mpi_to_ltc_error(mp_to_ubin(a, b, maxlen, &written));
