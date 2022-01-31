@@ -88,9 +88,8 @@ static TEE_Result tee_algo_to_ltc_hashindex(uint32_t algo, int *ltc_hashindex)
 }
 
 TEE_Result crypto_acipher_alloc_rsa_keypair(struct rsa_keypair *s,
-					    size_t key_size_bits __unused)
+						size_t key_size_bits __unused)
 {
-	printf("%s %d\n", __func__, __LINE__);
 	memset(s, 0, sizeof(*s));
 	if (!bn_alloc_max(&s->e))
 		return TEE_ERROR_OUT_OF_MEMORY;
@@ -116,7 +115,7 @@ err:
 }
 
 TEE_Result crypto_acipher_alloc_rsa_public_key(struct rsa_public_key *s,
-					       size_t key_size_bits __unused)
+						   size_t key_size_bits __unused)
 {
 	memset(s, 0, sizeof(*s));
 	if (!bn_alloc_max(&s->e))
@@ -157,16 +156,14 @@ TEE_Result crypto_acipher_gen_rsa_key(struct rsa_keypair *key, size_t key_size)
 	rsa_key ltc_tmp_key;
 	int ltc_res = -1;
 
-	ZF_LOGI("%s %d\n", __func__, __LINE__);
 	int wprng = find_prng("fortuna");
-	ZF_LOGI("%s %d\n", __func__, __LINE__);
 	rng_make_prng(128,wprng, &prng_fortuna, NULL);
-	ZF_LOGI("%s %d\n", __func__, __LINE__);
+
 	/* Generate a temporary RSA key */
 
 	ltc_res = rsa_make_key_bn_e(&prng_fortuna, wprng,
-				    key_size / 8, key->e,&ltc_tmp_key);
-	printf("%s %d\n", __func__, __LINE__);
+					key_size / 8, key->e,&ltc_tmp_key);
+
 	if (ltc_res != CRYPT_OK) {
 		res = TEE_ERROR_BAD_PARAMETERS;
 		ZF_LOGI("%s %d", __func__, __LINE__);
@@ -191,6 +188,46 @@ TEE_Result crypto_acipher_gen_rsa_key(struct rsa_keypair *key, size_t key_size)
 
 	return res;
 }
+TEE_Result crypto_acipher_extract_key(struct rsa_keypair *key, uint8_t *buf, size_t *len, int type )
+{
+	rsa_key ltc_key = { 0, };
+
+	ltc_key.type = type;
+	ltc_key.e = key->e;
+	ltc_key.N = key->n;
+	ltc_key.d = key->d;
+	ltc_key.p = key->p;
+	ltc_key.q = key->q;
+	ltc_key.qP = key->qp;
+	ltc_key.dP = key->dp;
+	ltc_key.dQ = key->dq;
+
+	return rsa_export(buf, len, type, &ltc_key);
+}
+
+TEE_Result crypto_acipher_import_key(struct rsa_keypair *key, uint8_t *buf, size_t len)
+{
+	int err;
+	rsa_key ltc_tmp_key;
+	err = rsa_import(buf, len, &ltc_tmp_key);
+	if (err)
+	{
+		rsa_free(&ltc_tmp_key);
+		return err;
+	}
+	ltc_mp.copy(ltc_tmp_key.d,  key->d);
+	ltc_mp.copy(ltc_tmp_key.N,  key->n);
+	ltc_mp.copy(ltc_tmp_key.p,  key->p);
+	ltc_mp.copy(ltc_tmp_key.q,  key->q);
+	ltc_mp.copy(ltc_tmp_key.qP, key->qp);
+	ltc_mp.copy(ltc_tmp_key.dP, key->dp);
+	ltc_mp.copy(ltc_tmp_key.dQ, key->dq);
+
+	/* Free the temporary key */
+	rsa_free(&ltc_tmp_key);
+	err = TEE_SUCCESS;
+	return err;
+}
 
 static TEE_Result rsadorep(rsa_key *ltc_key, const uint8_t *src,
 			   size_t src_len, uint8_t *dst, size_t *dst_len)
@@ -213,7 +250,7 @@ static TEE_Result rsadorep(rsa_key *ltc_key, const uint8_t *src,
 	}
 
 	ltc_res = rsa_exptmod(src, src_len, buf, &blen, ltc_key->type,
-			      ltc_key);
+				  ltc_key);
 	switch (ltc_res) {
 	case CRYPT_PK_NOT_PRIVATE:
 	case CRYPT_PK_INVALID_TYPE:
@@ -344,9 +381,9 @@ TEE_Result crypto_acipher_rsaes_decrypt(uint32_t algo, struct rsa_keypair *key,
 	}
 
 	ltc_res = rsa_decrypt_key_ex(src, src_len, buf, &blen,
-				     ((label_len == 0) ? 0 : label), label_len,
-				     ltc_hashindex, ltc_rsa_algo, &ltc_stat,
-				     &ltc_key);
+					 ((label_len == 0) ? 0 : label), label_len,
+					 ltc_hashindex, ltc_rsa_algo, &ltc_stat,
+					 &ltc_key);
 	switch (ltc_res) {
 	case CRYPT_PK_INVALID_PADDING:
 	case CRYPT_INVALID_PACKET:
@@ -365,7 +402,7 @@ TEE_Result crypto_acipher_rsaes_decrypt(uint32_t algo, struct rsa_keypair *key,
 	if (ltc_stat != 1) {
 		/* This will result in a panic */
 		EMSG("rsa_decrypt_key_ex() returned %d and %d",
-		     ltc_res, ltc_stat);
+			 ltc_res, ltc_stat);
 		res = TEE_ERROR_GENERIC;
 		goto out;
 	}
@@ -421,9 +458,9 @@ TEE_Result crypto_acipher_rsaes_encrypt(uint32_t algo,
 		ltc_rsa_algo = LTC_PKCS_1_OAEP;
 
 	ltc_res = rsa_encrypt_key_ex(src, src_len, dst,
-				     (unsigned long *)(dst_len), label,
-				     label_len, NULL, find_prng("prng_crypto"),
-				     ltc_hashindex, ltc_rsa_algo, &ltc_key);
+					 (unsigned long *)(dst_len), label,
+					 label_len, NULL, find_prng("prng_crypto"),
+					 ltc_hashindex, ltc_rsa_algo, &ltc_key);
 	switch (ltc_res) {
 	case CRYPT_PK_INVALID_PADDING:
 	case CRYPT_INVALID_PACKET:
@@ -445,9 +482,9 @@ out:
 }
 
 TEE_Result crypto_acipher_rsassa_sign(uint32_t algo, struct rsa_keypair *key,
-				      int salt_len, const uint8_t *msg,
-				      size_t msg_len, uint8_t *sig,
-				      size_t *sig_len)
+					  int salt_len, const uint8_t *msg,
+					  size_t msg_len, uint8_t *sig,
+					  size_t *sig_len)
 {
 	TEE_Result res;
 	size_t hash_size, mod_size;
@@ -499,7 +536,7 @@ TEE_Result crypto_acipher_rsassa_sign(uint32_t algo, struct rsa_keypair *key,
 		}
 
 		res = tee_alg_get_digest_size(TEE_DIGEST_HASH_TO_ALGO(algo),
-					      &hash_size);
+						  &hash_size);
 		if (res != TEE_SUCCESS)
 			goto err;
 
@@ -553,7 +590,7 @@ TEE_Result crypto_acipher_rsassa_verify(uint32_t algo,
 
 	if (algo != TEE_ALG_RSASSA_PKCS1_V1_5) {
 		res = tee_alg_get_digest_size(TEE_DIGEST_HASH_TO_ALGO(algo),
-					      &hash_size);
+						  &hash_size);
 		if (res != TEE_SUCCESS)
 			goto err;
 
@@ -601,7 +638,7 @@ TEE_Result crypto_acipher_rsassa_verify(uint32_t algo,
 	}
 
 	ltc_res = rsa_verify_hash_ex(sig, sig_len, msg, msg_len, ltc_rsa_algo,
-				     ltc_hashindex, salt_len, &stat, &ltc_key);
+					 ltc_hashindex, salt_len, &stat, &ltc_key);
 	res = convert_ltc_verify_status(ltc_res, stat);
 err:
 	return res;
