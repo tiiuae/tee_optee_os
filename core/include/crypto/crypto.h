@@ -253,6 +253,13 @@ TEE_Result crypto_acipher_sm2_pke_encrypt(struct ecc_public_key *key,
 					  const uint8_t *src, size_t src_len,
 					  uint8_t *dst, size_t *dst_len);
 
+TEE_Result crypto_acipher_extract_key(struct rsa_keypair *key,
+					 uint8_t *buf, size_t *len,
+					 int type );
+
+TEE_Result crypto_acipher_import_key(struct rsa_keypair *key, uint8_t *buf, size_t len);
+
+
 struct sm2_kep_parms {
 	uint8_t *out;
 	size_t out_len;
