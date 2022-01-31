@@ -15,6 +15,18 @@
    portable way to get secure random bits to feed a PRNG (Tom St Denis)
 */
 
+static unsigned long long riscv_clock(void)
+{
+   unsigned long long n;
+   asm volatile(
+        "rdtime %0"
+        : "=r"(n));
+   return (n/10);
+}
+
+#define SEL4CLOCK riscv_clock
+
+
 #if defined(LTC_DEVRANDOM) && !defined(_WIN32)
 /* on *NIX read /dev/random */
 static unsigned long _rng_nix(unsigned char *buf, unsigned long len,
@@ -63,9 +75,8 @@ static unsigned long _rng_nix(unsigned char *buf, unsigned long len,
 static unsigned long _rng_ansic(unsigned char *buf, unsigned long len,
                                void (*callback)(void))
 {
-   clock_t t1;
+   volatile unsigned long long t1;
    int l, acc, bits, a, b;
-
    l = len;
    bits = 8;
    acc  = a = b = 0;
@@ -73,8 +84,15 @@ static unsigned long _rng_ansic(unsigned char *buf, unsigned long len,
        if (callback != NULL) callback();
        while (bits--) {
           do {
-             t1 = XCLOCK(); while (t1 == XCLOCK()) a ^= 1;
-             t1 = XCLOCK(); while (t1 == XCLOCK()) b ^= 1;
+             t1 = SEL4CLOCK();
+            
+             do {
+                 a ^= 1;
+             } while (t1 == SEL4CLOCK());
+             t1 = SEL4CLOCK();
+             do {
+                 b ^= 1;
+             } while (t1 == SEL4CLOCK());
           } while (a == b);
           acc = (acc << 1) | a;
        }
