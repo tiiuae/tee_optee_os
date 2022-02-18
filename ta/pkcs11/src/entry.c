@@ -2,6 +2,9 @@
 /*
  * Copyright (c) 2018-2020, Linaro Limited
  */
+/* Local log level */
+#define ZF_LOG_LEVEL ZF_LOG_INFO
+#define PLAINTEXT_DATA
 
 #include <assert.h>
 #include <compiler.h>
@@ -14,6 +17,12 @@
 #include "pkcs11_helpers.h"
 #include "pkcs11_token.h"
 #include "processing.h"
+
+#include <utils/fence.h>
+#include <utils/zf_log.h>
+#include <sys/cdefs.h>
+
+
 
 TEE_Result TA_CreateEntryPoint(void)
 {
@@ -140,7 +149,7 @@ TEE_Result TA_InvokeCommandEntryPoint(void *tee_session, uint32_t cmd,
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
-	DMSG("%s p#0 %"PRIu32"@%p, p#1 %s %"PRIu32"@%p, p#2 %s %"PRIu32"@%p",
+	ZF_LOGI("%s p#0 %"PRIu32"@%p, p#1 %s %"PRIu32"@%p, p#2 %s %"PRIu32"@%p",
 	     id2str_ta_cmd(cmd),
 	     params[0].memref.size, params[0].memref.buffer,
 	     param_is_input(ptypes, 1) ? "in" :
@@ -357,11 +366,11 @@ TEE_Result TA_InvokeCommandEntryPoint(void *tee_session, uint32_t cmd,
 					  PKCS11_FUNCTION_UNWRAP);
 		break;
 	default:
-		EMSG("Command %#"PRIx32" is not supported", cmd);
+		ZF_LOGI("Command %#"PRIx32" is not supported", cmd);
 		return TEE_ERROR_NOT_SUPPORTED;
 	}
 
-	DMSG("%s rc %#"PRIx32"/%s", id2str_ta_cmd(cmd), rc, id2str_rc(rc));
+	ZF_LOGI("%s rc %#"PRIx32"/%s", id2str_ta_cmd(cmd), rc, id2str_rc(rc));
 
 	TEE_MemMove(params[0].memref.buffer, &rc, sizeof(rc));
 	params[0].memref.size = sizeof(rc);

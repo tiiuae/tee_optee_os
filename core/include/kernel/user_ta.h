@@ -53,7 +53,7 @@ static inline bool is_user_ta_ctx(struct ts_ctx *ctx __unused)
 
 static inline struct user_ta_ctx *to_user_ta_ctx(struct ts_ctx *ctx)
 {
-	assert(is_user_ta_ctx(ctx));
+	//assert(is_user_ta_ctx(ctx));
 	return container_of(ctx, struct user_ta_ctx, ta_ctx.ts_ctx);
 }
 

@@ -10,6 +10,8 @@
 #include <tee_api_types.h>
 #include <util.h>
 
+
+
 #define TA_FLAG_USER_MODE		0	 /* Deprecated, was (1 << 0) */
 #define TA_FLAG_EXEC_DDR		0	 /* Deprecated, was (1 << 1) */
 #define TA_FLAG_SINGLE_INSTANCE		(1 << 2)

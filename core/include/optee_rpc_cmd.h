@@ -6,6 +6,7 @@
 #ifndef __OPTEE_RPC_CMD_H
 #define __OPTEE_RPC_CMD_H
 
+#define U(x) (x)
 /*
  * All RPC is done with a struct optee_msg_arg as bearer of information,
  * struct optee_msg_arg::arg holds values defined by OPTEE_RPC_CMD_* below.
