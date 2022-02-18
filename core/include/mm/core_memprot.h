@@ -6,7 +6,7 @@
 #ifndef CORE_MEMPROT_H
 #define CORE_MEMPROT_H
 
-#include <mm/core_mmu.h>
+//#include <mm/core_mmu.h>
 #include <types_ext.h>
 
 /*
@@ -31,6 +31,36 @@ enum buf_is_attr {
 	CORE_MEM_TA_RAM,
 	CORE_MEM_SDP_MEM,
 	CORE_MEM_REG_SHM,
+};
+
+enum teecore_memtypes {
+	MEM_AREA_END = 0,
+	MEM_AREA_TEE_RAM,
+	MEM_AREA_TEE_RAM_RX,
+	MEM_AREA_TEE_RAM_RO,
+	MEM_AREA_TEE_RAM_RW,
+	MEM_AREA_INIT_RAM_RO,
+	MEM_AREA_INIT_RAM_RX,
+	MEM_AREA_NEX_RAM_RO,
+	MEM_AREA_NEX_RAM_RW,
+	MEM_AREA_TEE_COHERENT,
+	MEM_AREA_TEE_ASAN,
+	MEM_AREA_IDENTITY_MAP_RX,
+	MEM_AREA_TA_RAM,
+	MEM_AREA_NSEC_SHM,
+	MEM_AREA_RAM_NSEC,
+	MEM_AREA_RAM_SEC,
+	MEM_AREA_IO_NSEC,
+	MEM_AREA_IO_SEC,
+	MEM_AREA_EXT_DT,
+	MEM_AREA_RES_VASPACE,
+	MEM_AREA_SHM_VASPACE,
+	MEM_AREA_TS_VASPACE,
+	MEM_AREA_PAGER_VASPACE,
+	MEM_AREA_SDP_MEM,
+	MEM_AREA_DDR_OVERALL,
+	MEM_AREA_SEC_RAM_OVERALL,
+	MEM_AREA_MAXTYPE
 };
 
 /* redirect legacy tee_vbuf_is() and tee_pbuf_is() to our routines */

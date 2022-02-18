@@ -5,7 +5,7 @@
 
 #include <assert.h>
 #include <kernel/tee_misc.h>
-#include <kernel/thread.h>
+//#include <kernel/thread.h>
 #include <mm/core_memprot.h>
 #include <optee_rpc_cmd.h>
 #include <stdlib.h>
@@ -23,6 +23,65 @@ struct tee_fs_dir {
 	int nw_dir;
 	struct tee_fs_dirent d;
 };
+
+
+TEE_Result tee_fs_rpc_read_init(struct tee_fs_rpc_operation *op,
+				uint32_t id, int fd, tee_fs_off_t offset,
+				size_t data_len, void **out_data)
+{
+	struct mobj *mobj;
+	uint8_t *va;
+
+	if (offset < 0)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	va = malloc(data_len);	
+
+	if (!va)
+		return TEE_ERROR_OUT_OF_MEMORY;
+
+	*op = (struct tee_fs_rpc_operation){
+		.id = id, .num_params = 2, .params = {
+			[0] = THREAD_PARAM_VALUE(IN, OPTEE_RPC_FS_READ, fd,
+						 offset),
+			[1] = THREAD_PARAM_MEMREF(OUT, mobj, 0, data_len),
+		},
+	};
+
+	*out_data = va;
+
+	return TEE_SUCCESS;
+}
+
+TEE_Result tee_fs_rpc_write_init(struct tee_fs_rpc_operation *op,
+				 uint32_t id, int fd, tee_fs_off_t offset,
+				 size_t data_len, void **data)
+{
+	struct mobj *mobj;
+	uint8_t *va;
+
+	if (offset < 0)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+
+	va = malloc(data_len);
+
+	if (!va)
+		return TEE_ERROR_OUT_OF_MEMORY;
+
+	*op = (struct tee_fs_rpc_operation){
+		.id = id, .num_params = 2, .params = {
+			[0] = THREAD_PARAM_VALUE(IN, OPTEE_RPC_FS_WRITE, fd,
+						 offset),
+			[1] = THREAD_PARAM_MEMREF(IN, mobj, 0, data_len),
+		},
+	};
+
+	*data = va;
+
+	return TEE_SUCCESS;
+}
+
 
 /* "/dirf.db" or "/<file number>" */
 static TEE_Result create_filename(void *buf, size_t blen,
@@ -58,9 +117,7 @@ static TEE_Result operation_open_dfh(uint32_t id, unsigned int cmd,
 	TEE_Result res = TEE_SUCCESS;
 	void *va = NULL;
 
-	va = thread_rpc_shm_cache_alloc(THREAD_SHM_CACHE_USER_FS,
-					THREAD_SHM_TYPE_APPLICATION,
-					TEE_FS_NAME_MAX, &mobj);
+	va = malloc(TEE_FS_NAME_MAX);
 	if (!va)
 		return TEE_ERROR_OUT_OF_MEMORY;
 
@@ -107,7 +164,7 @@ TEE_Result tee_fs_rpc_close(uint32_t id, int fd)
 
 	return operation_commit(&op);
 }
-
+#if 0
 TEE_Result tee_fs_rpc_read_init(struct tee_fs_rpc_operation *op,
 				uint32_t id, int fd, tee_fs_off_t offset,
 				size_t data_len, void **out_data)
@@ -136,7 +193,7 @@ TEE_Result tee_fs_rpc_read_init(struct tee_fs_rpc_operation *op,
 
 	return TEE_SUCCESS;
 }
-
+#endif
 TEE_Result tee_fs_rpc_read_final(struct tee_fs_rpc_operation *op,
 				 size_t *data_len)
 {
@@ -146,7 +203,7 @@ TEE_Result tee_fs_rpc_read_final(struct tee_fs_rpc_operation *op,
 		*data_len = op->params[1].u.memref.size;
 	return res;
 }
-
+#if 0
 TEE_Result tee_fs_rpc_write_init(struct tee_fs_rpc_operation *op,
 				 uint32_t id, int fd, tee_fs_off_t offset,
 				 size_t data_len, void **data)
@@ -175,7 +232,7 @@ TEE_Result tee_fs_rpc_write_init(struct tee_fs_rpc_operation *op,
 
 	return TEE_SUCCESS;
 }
-
+#endif
 TEE_Result tee_fs_rpc_write_final(struct tee_fs_rpc_operation *op)
 {
 	return operation_commit(op);
@@ -201,9 +258,7 @@ TEE_Result tee_fs_rpc_remove_dfh(uint32_t id,
 	struct mobj *mobj = NULL;
 	void *va = NULL;
 
-	va = thread_rpc_shm_cache_alloc(THREAD_SHM_CACHE_USER_FS,
-					THREAD_SHM_TYPE_APPLICATION,
-					TEE_FS_NAME_MAX, &mobj);
+	va = malloc(TEE_FS_NAME_MAX);
 	if (!va)
 		return TEE_ERROR_OUT_OF_MEMORY;
 
@@ -221,3 +276,6 @@ TEE_Result tee_fs_rpc_remove_dfh(uint32_t id,
 
 	return operation_commit(&op);
 }
+
+
+

@@ -14,7 +14,52 @@
 #include <stddef.h>
 #include <tee_api_types.h>
 #include <tee/tee_fs.h>
-#include <kernel/thread.h>
+
+struct thread_param_memref {
+	size_t offs;
+	size_t size;
+	struct mobj *mobj;
+};
+
+struct thread_param_value {
+	uint64_t a;
+	uint64_t b;
+	uint64_t c;
+};
+
+/*
+ * Note that there's some arithmetics done on the value so it's important
+ * to keep in IN, OUT, INOUT order.
+ */
+enum thread_param_attr {
+	THREAD_PARAM_ATTR_NONE = 0,
+	THREAD_PARAM_ATTR_VALUE_IN,
+	THREAD_PARAM_ATTR_VALUE_OUT,
+	THREAD_PARAM_ATTR_VALUE_INOUT,
+	THREAD_PARAM_ATTR_MEMREF_IN,
+	THREAD_PARAM_ATTR_MEMREF_OUT,
+	THREAD_PARAM_ATTR_MEMREF_INOUT,
+};
+
+struct thread_param {
+	enum thread_param_attr attr;
+	union {
+		struct thread_param_memref memref;
+		struct thread_param_value value;
+	} u;
+};
+
+#define THREAD_PARAM_MEMREF(_direction, _mobj, _offs, _size) \
+	(struct thread_param){ \
+		.attr = THREAD_PARAM_ATTR_MEMREF_ ## _direction, .u.memref = { \
+		.mobj = (_mobj), .offs = (_offs), .size = (_size) } \
+	}
+
+#define THREAD_PARAM_VALUE(_direction, _a, _b, _c) \
+	(struct thread_param){ \
+		.attr = THREAD_PARAM_ATTR_VALUE_ ## _direction, .u.value = { \
+		.a = (_a), .b = (_b), .c = (_c) } \
+	}
 
 struct tee_fs_rpc_operation {
 	uint32_t id;

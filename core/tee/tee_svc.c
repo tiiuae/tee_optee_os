@@ -13,10 +13,7 @@
 #include <kernel/tee_time.h>
 #include <kernel/trace_ta.h>
 #include <kernel/user_access.h>
-#include <mm/core_memprot.h>
-#include <mm/mobj.h>
-#include <mm/tee_mm.h>
-#include <mm/vm.h>
+//#include <mm/mobj.h>
 #include <stdlib_ext.h>
 #include <tee_api_types.h>
 #include <tee/tee_cryp_utl.h>
@@ -27,6 +24,27 @@
 #include <util.h>
 
 vaddr_t tee_svc_uref_base;
+
+struct user_mode_ctx {
+	struct vm_info vm_info;
+	struct vm_paged_region_head *regions;
+#if defined(CFG_WITH_VFP)
+	struct thread_user_vfp_state vfp;
+#endif
+	struct ts_ctx *ts_ctx;
+	uaddr_t entry_func;
+	uaddr_t dump_entry_func;
+#ifdef CFG_FTRACE_SUPPORT
+	uaddr_t ftrace_entry_func;
+#endif
+	uaddr_t dl_entry_func;
+	uaddr_t ldelf_stack_ptr;
+	bool is_32bit;
+	bool is_initializing;
+	vaddr_t stack_ptr;
+};
+
+
 
 void syscall_log(const void *buf __maybe_unused, size_t len __maybe_unused)
 {
@@ -569,10 +587,8 @@ static TEE_Result utee_param_to_param(struct user_ta_ctx *utc,
 				break;
 			}
 
-			p->u[n].mem.mobj = &mobj_virt;
+			//p->u[n].mem.mobj = &mobj_virt;
 
-			if (vm_check_access_rights(&utc->uctx, flags, a, b))
-				return TEE_ERROR_ACCESS_DENIED;
 			break;
 		case TEE_PARAM_TYPE_VALUE_INPUT:
 		case TEE_PARAM_TYPE_VALUE_INOUT:
@@ -587,7 +603,7 @@ static TEE_Result utee_param_to_param(struct user_ta_ctx *utc,
 
 	return TEE_SUCCESS;
 }
-
+#if 0
 static TEE_Result alloc_temp_sec_mem(size_t size, struct mobj **mobj,
 				     uint8_t **va)
 {
@@ -613,7 +629,7 @@ static TEE_Result alloc_temp_sec_mem(size_t size, struct mobj **mobj,
 	*va = v;
 	return TEE_SUCCESS;
 }
-
+#endif
 /*
  * TA invokes some TA with parameter.
  * If some parameters are memory references:
@@ -623,6 +639,7 @@ static TEE_Result alloc_temp_sec_mem(size_t size, struct mobj **mobj,
  *   - if the memref was mapped to the TA, TA is allowed to expose it.
  *   - if so, converts memref virtual address into a physical address.
  */
+#if 0
 static TEE_Result tee_svc_copy_param(struct ts_session *sess,
 				     struct ts_session *called_sess,
 				     struct utee_params *callee_params,
@@ -631,7 +648,8 @@ static TEE_Result tee_svc_copy_param(struct ts_session *sess,
 				     size_t tmp_buf_size[TEE_NUM_PARAMS],
 				     struct mobj **mobj_tmp)
 {
-	struct user_ta_ctx *utc = to_user_ta_ctx(sess->ctx);
+	//struct user_ta_ctx *utc = to_user_ta_ctx(sess->ctx);
+
 	bool ta_private_memref[TEE_NUM_PARAMS] = { false, };
 	TEE_Result res = TEE_SUCCESS;
 	size_t dst_offs = 0;
@@ -649,11 +667,6 @@ static TEE_Result tee_svc_copy_param(struct ts_session *sess,
 				 TEE_MEMORY_ACCESS_WRITE |
 				 TEE_MEMORY_ACCESS_ANY_OWNER;
 
-		res = vm_check_access_rights(&utc->uctx, flags,
-					     (uaddr_t)callee_params,
-					     sizeof(struct utee_params));
-		if (res != TEE_SUCCESS)
-			return res;
 		res = utee_param_to_param(utc, param, callee_params);
 		if (res != TEE_SUCCESS)
 			return res;
@@ -681,6 +694,7 @@ static TEE_Result tee_svc_copy_param(struct ts_session *sess,
 					return TEE_ERROR_BAD_PARAMETERS;
 				break;
 			}
+#if 0
 			/* uTA cannot expose its private memory */
 			if (vm_buf_is_inside_um_private(&utc->uctx, va, s)) {
 				s = ROUNDUP(s, sizeof(uint32_t));
@@ -695,6 +709,7 @@ static TEE_Result tee_svc_copy_param(struct ts_session *sess,
 						  &param->u[n].mem.offs);
 			if (res != TEE_SUCCESS)
 				return res;
+#endif
 			break;
 		default:
 			break;
@@ -753,7 +768,7 @@ static TEE_Result tee_svc_copy_param(struct ts_session *sess,
 
 	return TEE_SUCCESS;
 }
-
+#endif
 /*
  * Back from execution of service: update parameters passed from TA:
  * If some parameters were memory references:
@@ -814,7 +829,7 @@ static TEE_Result tee_svc_update_out_param(
 
 	return TEE_SUCCESS;
 }
-
+#if 0
 /* Called when a TA calls an OpenSession on another TA */
 TEE_Result syscall_open_ta_session(const TEE_UUID *dest,
 			unsigned long cancel_req_to,
@@ -947,14 +962,13 @@ function_exit:
 	copy_to_user_private(ret_orig, &ret_o, sizeof(ret_o));
 	return res;
 }
-
+#endif
 TEE_Result syscall_check_access_rights(unsigned long flags, const void *buf,
 				       size_t len)
 {
 	struct ts_session *s = ts_get_current_session();
+	return TEE_SUCCESS;
 
-	return vm_check_access_rights(&to_user_ta_ctx(s->ctx)->uctx, flags,
-				      (uaddr_t)buf, len);
 }
 
 TEE_Result syscall_get_cancellation_flag(uint32_t *cancel)

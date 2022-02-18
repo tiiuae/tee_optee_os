@@ -142,4 +142,8 @@ static inline size_t confine_array_index(size_t index, size_t size) {
   return safe_index;
 }
 #endif
+static inline size_t confine_array_index(size_t index, size_t size) {
+  return index;
+}
+
 #endif  // FBL_CONFINE_ARRAY_INDEX_H_

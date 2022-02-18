@@ -11,6 +11,7 @@
 #include <crypto/crypto.h>
 #include <kernel/tee_ta_manager.h>
 #include <kernel/user_access.h>
+#include <kernel/user_ta.h>
 #include <mm/vm.h>
 #include <stdlib_ext.h>
 #include <string_ext.h>
@@ -727,14 +728,7 @@ static TEE_Result op_attr_bignum_to_user(void *attr,
 	if (s < req_size || !buffer)
 		return TEE_ERROR_SHORT_BUFFER;
 
-	/* Check we can access data using supplied user mode pointer */
-	res = vm_check_access_rights(&to_user_ta_ctx(sess->ctx)->uctx,
-				     TEE_MEMORY_ACCESS_READ |
-				     TEE_MEMORY_ACCESS_WRITE |
-				     TEE_MEMORY_ACCESS_ANY_OWNER,
-				     (uaddr_t)buffer, req_size);
-	if (res != TEE_SUCCESS)
-		return res;
+
 	/*
 	* Write the bignum (wich raw data points to) into an array of
 	* bytes (stored in buffer)

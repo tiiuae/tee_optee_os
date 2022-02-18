@@ -9,12 +9,12 @@
 #include <tee_api_types.h>
 #include <utee_defines.h>
 
-#define TEE_FS_KM_CHIP_ID_LENGTH    (32u)
+#define TEE_FS_KM_CHIP_ID_LENGTH    32u
 #define TEE_FS_KM_HMAC_ALG          TEE_ALG_HMAC_SHA256
 #define TEE_FS_KM_ENC_FEK_ALG       TEE_ALG_AES_ECB_NOPAD
 #define TEE_FS_KM_SSK_SIZE          TEE_SHA256_HASH_SIZE
 #define TEE_FS_KM_TSK_SIZE          TEE_SHA256_HASH_SIZE
-#define TEE_FS_KM_FEK_SIZE          (16u)  /* bytes */
+#define TEE_FS_KM_FEK_SIZE          16u  /* bytes */
 
 TEE_Result tee_fs_generate_fek(const TEE_UUID *uuid, void *encrypted_fek,
 			       size_t fek_size);
@@ -26,5 +26,7 @@ TEE_Result tee_fs_crypt_block(const TEE_UUID *uuid, uint8_t *out,
 TEE_Result tee_fs_fek_crypt(const TEE_UUID *uuid, TEE_OperationMode mode,
 			    const uint8_t *in_key, size_t size,
 			    uint8_t *out_key);
+
 TEE_Result tee_fs_init_key_manager(void);
+
 #endif

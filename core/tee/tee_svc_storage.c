@@ -95,8 +95,9 @@ static TEE_Result tee_svc_storage_read_head(struct tee_obj *o)
 	assert(!o->fh);
 	res = fops->open(o->pobj, &size, &o->fh);
 	if (res != TEE_SUCCESS)
+	{
 		goto exit;
-
+	}
 	/* read head */
 	bytes = sizeof(struct tee_svc_storage_head);
 	res = fops->read(o->fh, 0, &head, &bytes);
@@ -170,10 +171,13 @@ TEE_Result syscall_storage_obj_open(unsigned long storage_id, void *object_id,
 					  TEE_DATA_FLAG_ACCESS_WRITE_META |
 					  TEE_DATA_FLAG_SHARE_READ |
 					  TEE_DATA_FLAG_SHARE_WRITE;
+
 	const struct tee_file_operations *fops =
 			tee_svc_storage_file_ops(storage_id);
+	
 	struct ts_session *sess = ts_get_current_session();
 	struct user_ta_ctx *utc = to_user_ta_ctx(sess->ctx);
+
 	TEE_Result res = TEE_SUCCESS;
 	struct tee_pobj *po = NULL;
 	struct tee_obj *o = NULL;
