@@ -215,6 +215,7 @@ TEE_Result crypto_acipher_import_key(struct rsa_keypair *key, uint8_t *buf, size
 		rsa_free(&ltc_tmp_key);
 		return err;
 	}
+	ltc_mp.copy(ltc_tmp_key.e,  key->e);
 	ltc_mp.copy(ltc_tmp_key.d,  key->d);
 	ltc_mp.copy(ltc_tmp_key.N,  key->n);
 	ltc_mp.copy(ltc_tmp_key.p,  key->p);
@@ -222,6 +223,26 @@ TEE_Result crypto_acipher_import_key(struct rsa_keypair *key, uint8_t *buf, size
 	ltc_mp.copy(ltc_tmp_key.qP, key->qp);
 	ltc_mp.copy(ltc_tmp_key.dP, key->dp);
 	ltc_mp.copy(ltc_tmp_key.dQ, key->dq);
+
+	/* Free the temporary key */
+	rsa_free(&ltc_tmp_key);
+	err = TEE_SUCCESS;
+	return err;
+}
+
+TEE_Result crypto_acipher_import_public_key(struct rsa_public_key  *key, uint8_t *buf, size_t len)
+{
+	int err;
+	rsa_key ltc_tmp_key;
+	err = rsa_import(buf, len, &ltc_tmp_key);
+	if (err)
+	{
+		rsa_free(&ltc_tmp_key);
+		return err;
+	}
+
+	ltc_mp.copy(ltc_tmp_key.N,  key->n);
+	ltc_mp.copy(ltc_tmp_key.e,  key->e);
 
 	/* Free the temporary key */
 	rsa_free(&ltc_tmp_key);
@@ -439,6 +460,10 @@ TEE_Result crypto_acipher_rsaes_encrypt(uint32_t algo,
 		.N = key->n
 	};
 
+	static prng_state prng;
+	int wprng = find_prng("fortuna");
+	rng_make_prng(256,wprng, &prng, NULL);
+
 	mod_size =  ltc_mp.unsigned_size((void *)(ltc_key.N));
 	if (*dst_len < mod_size) {
 		*dst_len = mod_size;
@@ -459,7 +484,7 @@ TEE_Result crypto_acipher_rsaes_encrypt(uint32_t algo,
 
 	ltc_res = rsa_encrypt_key_ex(src, src_len, dst,
 					 (unsigned long *)(dst_len), label,
-					 label_len, NULL, find_prng("prng_crypto"),
+					 label_len, &prng, wprng,
 					 ltc_hashindex, ltc_rsa_algo, &ltc_key);
 	switch (ltc_res) {
 	case CRYPT_PK_INVALID_PADDING:

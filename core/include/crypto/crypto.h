@@ -259,6 +259,10 @@ TEE_Result crypto_acipher_extract_key(struct rsa_keypair *key,
 
 TEE_Result crypto_acipher_import_key(struct rsa_keypair *key, uint8_t *buf, size_t len);
 
+TEE_Result crypto_acipher_import_public_key(struct rsa_public_key  *key,
+					uint8_t *buf, size_t len);
+
+
 
 struct sm2_kep_parms {
 	uint8_t *out;
