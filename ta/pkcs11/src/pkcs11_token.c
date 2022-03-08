@@ -1544,12 +1544,13 @@ enum pkcs11_rc entry_ck_seed_random(struct pkcs11_client *client,
 
 	if (!in->memref.size)
 		return PKCS11_CKR_OK;
-
+/* Sel4 we do not support system TA stubbed*/
+#if 0
 	res = seed_rng_pool(in->memref.buffer, in->memref.size);
 	if (res != TEE_SUCCESS)
 		return PKCS11_CKR_FUNCTION_FAILED;
-
-	DMSG("PKCS11 session %"PRIu32": seed random", session->handle);
+#endif
+	DMSG("PKCS11 session %"PRIu32": seed random STUB", session->handle);
 
 	return PKCS11_CKR_OK;
 }
