@@ -57,6 +57,22 @@ static int init(void **a)
    return err;
 }
 
+static int init_size(int size_bits, void **a)
+{
+   int err;
+   LTC_ARGCHK(a != NULL);
+
+   *a = XCALLOC(1, sizeof(mp_int));
+   if (*a == NULL) {
+      return CRYPT_MEM;
+   }
+
+   if ((err = mpi_to_ltc_error(mp_init_size(*a, size_bits))) != CRYPT_OK) {
+      XFREE(*a);
+   }
+   return err;
+}
+
 static void deinit(void *a)
 {
    LTC_ARGCHKVD(a != NULL);
@@ -448,6 +464,7 @@ const ltc_math_descriptor ltm_desc = {
 
    .init = init,
    .init_copy = init_copy,
+   .init_size = init_size,
    .deinit = deinit,
 
    .neg = neg,
