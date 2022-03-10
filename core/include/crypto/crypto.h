@@ -192,6 +192,18 @@ TEE_Result crypto_acipher_alloc_ecc_keypair(struct ecc_keypair *s,
 					    size_t key_size_bits);
 void crypto_acipher_free_ecc_public_key(struct ecc_public_key *s);
 
+void ecc_free_keypair(struct ecc_keypair *s);
+
+TEE_Result ecc_export_keys(struct ecc_keypair *key,
+								  uint8_t *priv_key,
+								  size_t *priv_key_length,
+								  uint8_t *public_key,
+								  size_t *pub_key_length);
+
+TEE_Result ecc_import_keys(struct ecc_keypair *key,
+							 uint8_t *keyarray,
+							 size_t len);
+
 /*
  * Key generation functions
  */
