@@ -10,8 +10,8 @@
 #include <tee_api_types.h>
 #include <trace.h>
 #include <utee_defines.h>
-
 #include "acipher_helpers.h"
+static prng_state prng;
 
 static void _ltc_ecc_free_public_key(struct ecc_public_key *s)
 {
@@ -20,6 +20,15 @@ static void _ltc_ecc_free_public_key(struct ecc_public_key *s)
 
 	crypto_bignum_free(s->x);
 	crypto_bignum_free(s->y);
+}
+
+void ecc_free_keypair(struct ecc_keypair *s)
+{
+	if (!s)
+		return;
+	crypto_bignum_free(s->y);
+	crypto_bignum_free(s->d);
+	crypto_bignum_free(s->x);
 }
 
 /*
@@ -132,7 +141,9 @@ static TEE_Result _ltc_ecc_generate_keypair(struct ecc_keypair *key,
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	/* Generate the ECC key */
-	ltc_res = ecc_make_key(NULL, find_prng("prng_crypto"),
+	int wprng = find_prng("fortuna");
+	rng_make_prng(256,wprng, &prng, NULL);
+	ltc_res = ecc_make_key(&prng, wprng,
 			       key_size_bytes, &ltc_tmp_key);
 	if (ltc_res != CRYPT_OK)
 		return TEE_ERROR_BAD_PARAMETERS;
@@ -209,6 +220,113 @@ TEE_Result ecc_populate_ltc_private_key(ecc_key *ltc_key,
 	mp_set_int(ltc_key->pubkey.z, 1);
 
 	return TEE_SUCCESS;
+}
+
+
+TEE_Result ecc_export_keys(struct ecc_keypair *key,
+								  uint8_t *priv_key,
+								  size_t *priv_key_length,
+								  uint8_t *public_key,
+								  size_t *pub_key_length)
+{
+	ecc_key ltc_key;
+	size_t length;
+	TEE_Result ret = -1;
+	const char *name = NULL;
+	uint8_t one[1] = { 1 };
+
+	if (priv_key) {
+		memset(&ltc_key, 0, sizeof(ltc_key));
+		ret = ecc_populate_ltc_private_key(&ltc_key, key, 0, &length);
+		if (ret)
+			return ret;
+
+		ret = ecc_export(priv_key, priv_key_length, PK_PRIVATE, &ltc_key);
+		if (ret)
+			return ret;
+
+	}
+	if (public_key) {
+		memset(&ltc_key, 0, sizeof(ltc_key));
+		ret = ecc_get_curve_info(key->curve, 0, &length, NULL, &name);
+		if (ret)
+			return ret;
+		ret = ecc_set_curve_from_name(&ltc_key, name);
+		if (ret)
+			return ret;
+
+		ltc_key.type = PK_PUBLIC;
+		mp_copy(key->x, ltc_key.pubkey.x);
+		mp_copy(key->y, ltc_key.pubkey.y);
+		mp_read_unsigned_bin(ltc_key.pubkey.z, one, sizeof(one));
+
+		ret = ecc_export(public_key, pub_key_length, PK_PUBLIC, &ltc_key);
+	}
+	return ret;
+
+}
+
+static int set_ecc_curve_by_size(int size, uint32_t *curve)
+{
+   *curve = 0;
+
+	if (size <= 24) {
+		*curve = TEE_ECC_CURVE_NIST_P192;
+	}
+	else if (size <= 28) {
+		*curve = TEE_ECC_CURVE_NIST_P224;
+	}
+	else if (size <= 32) {
+		*curve = TEE_ECC_CURVE_NIST_P256;
+	}
+	else if (size <= 48) {
+		*curve = TEE_ECC_CURVE_NIST_P384;
+	}
+	else if (size <= 66) {
+		*curve = TEE_ECC_CURVE_NIST_P521;
+	}
+
+	if (!*curve)
+		return -1;
+
+	return 0;
+}
+
+TEE_Result ecc_import_keys(struct ecc_keypair *key, uint8_t *keyarray, size_t len)
+{
+	ecc_key ltc_tmp_key;
+	TEE_Result ret = -1;
+
+	uint8_t pp[256];
+	size_t l = 256;
+
+	int key_size;
+
+	ret = ecc_import(keyarray, len, &ltc_tmp_key);
+	if (ret) {
+		printf("ECC import failed %d\n", ret);
+		goto err;
+	}
+
+	key_size = ecc_get_size(&ltc_tmp_key);
+
+	ret = set_ecc_curve_by_size(key_size, &key->curve);
+	if (ret)
+		goto err;
+
+	if (!bn_alloc_max(&key->d))
+		goto err;
+	if (!bn_alloc_max(&key->x))
+		goto err;
+	if (!bn_alloc_max(&key->y))
+		goto err;
+
+	/* Copy the key */
+	ltc_mp.copy(ltc_tmp_key.k, key->d);
+	ltc_mp.copy(ltc_tmp_key.pubkey.x, key->x);
+	ltc_mp.copy(ltc_tmp_key.pubkey.y, key->y);
+err:
+	return ret;
 }
 
 /*
@@ -390,13 +508,33 @@ static const struct crypto_ecc_public_ops sm2_kep_public_key_ops = {
 
 TEE_Result crypto_asym_alloc_ecc_keypair(struct ecc_keypair *s,
 					 uint32_t key_type,
-					 size_t key_size_bits __unused)
+					 size_t key_size_bits)
 {
 	memset(s, 0, sizeof(*s));
 
 	switch (key_type) {
 	case TEE_TYPE_ECDSA_KEYPAIR:
 	case TEE_TYPE_ECDH_KEYPAIR:
+
+		switch (key_size_bits) {
+			case 192:
+				s->curve = TEE_ECC_CURVE_NIST_P192;
+			break;
+			case 224:
+				s->curve = TEE_ECC_CURVE_NIST_P224;
+			break;
+			case 256:
+				s->curve = TEE_ECC_CURVE_NIST_P256;
+			break;
+			case 384:
+				s->curve = TEE_ECC_CURVE_NIST_P384;
+			break;
+			case 521:
+				s->curve = TEE_ECC_CURVE_NIST_P521;
+			break;
+			default:
+				return TEE_ERROR_NOT_IMPLEMENTED;
+		}
 		s->ops = &ecc_keypair_ops;
 		break;
 	case TEE_TYPE_SM2_DSA_KEYPAIR:
@@ -428,6 +566,8 @@ TEE_Result crypto_asym_alloc_ecc_keypair(struct ecc_keypair *s,
 	if (!bn_alloc_max(&s->y))
 		goto err;
 
+
+
 	return TEE_SUCCESS;
 
 err:
@@ -441,13 +581,32 @@ err:
 
 TEE_Result crypto_asym_alloc_ecc_public_key(struct ecc_public_key *s,
 					    uint32_t key_type,
-					    size_t key_size_bits __unused)
+					    size_t key_size_bits)
 {
 	memset(s, 0, sizeof(*s));
 
 	switch (key_type) {
 	case TEE_TYPE_ECDSA_PUBLIC_KEY:
 	case TEE_TYPE_ECDH_PUBLIC_KEY:
+		switch (key_size_bits) {
+			case 192:
+				s->curve = TEE_ECC_CURVE_NIST_P192;
+			break;
+			case 224:
+				s->curve = TEE_ECC_CURVE_NIST_P224;
+			break;
+			case 256:
+				s->curve = TEE_ECC_CURVE_NIST_P256;
+			break;
+			case 384:
+				s->curve = TEE_ECC_CURVE_NIST_P384;
+			break;
+			case 521:
+				s->curve = TEE_ECC_CURVE_NIST_P521;
+			break;
+			default:
+				return TEE_ERROR_NOT_IMPLEMENTED;
+		}
 		s->ops = &ecc_public_key_ops;
 		break;
 	case TEE_TYPE_SM2_DSA_PUBLIC_KEY:
