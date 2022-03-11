@@ -11,7 +11,8 @@
 #include <trace.h>
 #include <utee_defines.h>
 #include "acipher_helpers.h"
-static prng_state prng;
+
+extern prng_state sel4_prng;
 
 static void _ltc_ecc_free_public_key(struct ecc_public_key *s)
 {
@@ -141,9 +142,7 @@ static TEE_Result _ltc_ecc_generate_keypair(struct ecc_keypair *key,
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	/* Generate the ECC key */
-	int wprng = find_prng("fortuna");
-	rng_make_prng(256,wprng, &prng, NULL);
-	ltc_res = ecc_make_key(&prng, wprng,
+	ltc_res = ecc_make_key(&sel4_prng, find_prng("fortuna"),
 			       key_size_bytes, &ltc_tmp_key);
 	if (ltc_res != CRYPT_OK)
 		return TEE_ERROR_BAD_PARAMETERS;

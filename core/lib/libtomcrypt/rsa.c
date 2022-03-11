@@ -17,7 +17,7 @@
 
 #include "acipher_helpers.h"
 
-static prng_state prng_fortuna;
+extern prng_state sel4_prng;
 
 //#define ZF_LOGI  printf
 /*
@@ -156,13 +156,10 @@ TEE_Result crypto_acipher_gen_rsa_key(struct rsa_keypair *key, size_t key_size)
 	rsa_key ltc_tmp_key;
 	int ltc_res = -1;
 
-	int wprng = find_prng("fortuna");
-	rng_make_prng(128,wprng, &prng_fortuna, NULL);
-
 	/* Generate a temporary RSA key */
 
-	ltc_res = rsa_make_key_bn_e(&prng_fortuna, wprng,
-					key_size / 8, key->e,&ltc_tmp_key);
+	ltc_res = rsa_make_key_bn_e(&sel4_prng, find_prng("fortuna"),
+					key_size / 8, key->e, &ltc_tmp_key);
 
 	if (ltc_res != CRYPT_OK) {
 		res = TEE_ERROR_BAD_PARAMETERS;
