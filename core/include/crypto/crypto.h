@@ -204,6 +204,12 @@ TEE_Result ecc_import_keys(struct ecc_keypair *key,
 							 uint8_t *keyarray,
 							 size_t len);
 
+TEE_Result generate_x25519_keypair(uint8_t *pubkey,
+								 uint8_t *privkey,
+								 size_t *pubkey_length,
+								 size_t *privkey_length,
+								 bool x509_public);
+
 /*
  * Key generation functions
  */
