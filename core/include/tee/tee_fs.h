@@ -68,6 +68,11 @@ TEE_Result tee_rpmb_fs_raw_open(const char *fname, bool create,
 bool plat_rpmb_key_is_ready(void);
 #endif
 
+#ifdef CFG_RAMDISK_FS
+extern const struct tee_file_operations ramdisk_fs_ops;
+TEE_Result ramdisk_fs_init(void);
+#endif
+
 /*
  * Returns the appropriate tee_file_operations for the specified storage ID.
  * The value TEE_STORAGE_PRIVATE will select the REE FS if available, otherwise
@@ -82,6 +87,8 @@ tee_svc_storage_file_ops(uint32_t storage_id)
 		return &ree_fs_ops;
 #elif defined(CFG_RPMB_FS)
 		return &rpmb_fs_ops;
+#elif defined(CFG_RAMDISK_FS)
+		return &ramdisk_fs_ops;
 #else
 		return NULL;
 #endif
