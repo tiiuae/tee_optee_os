@@ -301,9 +301,6 @@ TEE_Result ecc_import_keys(struct ecc_keypair *key, uint8_t *keyarray, size_t le
 	ecc_key ltc_tmp_key;
 	TEE_Result ret = -1;
 
-	uint8_t pp[256];
-	size_t l = 256;
-
 	int key_size;
 
 	ret = ecc_import(keyarray, len, &ltc_tmp_key);

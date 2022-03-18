@@ -556,6 +556,7 @@ out:
 	return res;
 }
 
+#if 0
 static TEE_Result utee_param_to_param(struct user_ta_ctx *utc,
 				      struct tee_ta_param *p,
 				      struct utee_params *up)
@@ -603,7 +604,7 @@ static TEE_Result utee_param_to_param(struct user_ta_ctx *utc,
 
 	return TEE_SUCCESS;
 }
-#if 0
+
 static TEE_Result alloc_temp_sec_mem(size_t size, struct mobj **mobj,
 				     uint8_t **va)
 {
@@ -629,7 +630,7 @@ static TEE_Result alloc_temp_sec_mem(size_t size, struct mobj **mobj,
 	*va = v;
 	return TEE_SUCCESS;
 }
-#endif
+
 /*
  * TA invokes some TA with parameter.
  * If some parameters are memory references:
@@ -639,7 +640,7 @@ static TEE_Result alloc_temp_sec_mem(size_t size, struct mobj **mobj,
  *   - if the memref was mapped to the TA, TA is allowed to expose it.
  *   - if so, converts memref virtual address into a physical address.
  */
-#if 0
+
 static TEE_Result tee_svc_copy_param(struct ts_session *sess,
 				     struct ts_session *called_sess,
 				     struct utee_params *callee_params,
@@ -768,7 +769,7 @@ static TEE_Result tee_svc_copy_param(struct ts_session *sess,
 
 	return TEE_SUCCESS;
 }
-#endif
+
 /*
  * Back from execution of service: update parameters passed from TA:
  * If some parameters were memory references:
@@ -829,7 +830,7 @@ static TEE_Result tee_svc_update_out_param(
 
 	return TEE_SUCCESS;
 }
-#if 0
+
 /* Called when a TA calls an OpenSession on another TA */
 TEE_Result syscall_open_ta_session(const TEE_UUID *dest,
 			unsigned long cancel_req_to,
@@ -966,7 +967,7 @@ function_exit:
 TEE_Result syscall_check_access_rights(unsigned long flags, const void *buf,
 				       size_t len)
 {
-	struct ts_session *s = ts_get_current_session();
+	/* struct ts_session *s = ts_get_current_session(); */
 	return TEE_SUCCESS;
 
 }
