@@ -1481,6 +1481,7 @@ enum pkcs11_rc entry_ck_logout(struct pkcs11_client *client,
 	return PKCS11_CKR_OK;
 }
 
+#if 0
 static TEE_Result seed_rng_pool(void *seed, size_t length)
 {
 	static const TEE_UUID system_uuid = PTA_SYSTEM_UUID;
@@ -1512,6 +1513,7 @@ static TEE_Result seed_rng_pool(void *seed, size_t length)
 	TEE_CloseTASession(sess);
 	return res;
 }
+#endif
 
 enum pkcs11_rc entry_ck_seed_random(struct pkcs11_client *client,
 				    uint32_t ptypes, TEE_Param *params)
@@ -1525,7 +1527,7 @@ enum pkcs11_rc entry_ck_seed_random(struct pkcs11_client *client,
 	enum pkcs11_rc rc = PKCS11_CKR_OK;
 	struct serialargs ctrlargs = { };
 	struct pkcs11_session *session = NULL;
-	TEE_Result res = TEE_SUCCESS;
+	/* TEE_Result res = TEE_SUCCESS; */
 
 	if (!client || ptypes != exp_pt)
 		return PKCS11_CKR_ARGUMENTS_BAD;
