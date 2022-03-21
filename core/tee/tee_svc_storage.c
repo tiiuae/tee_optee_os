@@ -159,6 +159,9 @@ static TEE_Result tee_svc_storage_read_head(struct tee_obj *o)
 exit:
 	free(attr);
 
+	if(res)
+		EMSG("%s: 0x%x", (char *)o->pobj->obj_id, res);
+
 	return res;
 }
 
@@ -174,7 +177,7 @@ TEE_Result syscall_storage_obj_open(unsigned long storage_id, void *object_id,
 
 	const struct tee_file_operations *fops =
 			tee_svc_storage_file_ops(storage_id);
-	
+
 	struct ts_session *sess = ts_get_current_session();
 	struct user_ta_ctx *utc = to_user_ta_ctx(sess->ctx);
 
@@ -247,6 +250,10 @@ err:
 exit:
 	free(file);
 	file = NULL;
+
+	if(res)
+		EMSG("%s: 0x%x", (char *)object_id, res);
+
 	return res;
 }
 
@@ -305,6 +312,10 @@ static TEE_Result tee_svc_storage_init_file(struct tee_obj *o, bool overwrite,
 		o->info.dataSize = len;
 exit:
 	free(attr);
+
+	if(res)
+		EMSG("%s: 0x%x", (char *)o->pobj->obj_id, res);
+
 	return res;
 }
 
@@ -402,6 +413,9 @@ TEE_Result syscall_storage_obj_create(unsigned long storage_id, void *object_id,
 	return TEE_SUCCESS;
 
 oclose:
+	if(res)
+		EMSG("%s: 0x%x", (char *)object_id, res);
+
 	tee_obj_close(utc, o);
 	return res;
 
@@ -416,6 +430,9 @@ err:
 	}
 	if (po)
 		tee_pobj_release(po);
+
+	if(res)
+		EMSG("%s: 0x%x", (char *)object_id, res);
 
 	return res;
 }
@@ -453,6 +470,10 @@ TEE_Result syscall_storage_obj_del(unsigned long obj)
 	}
 
 	res = o->pobj->fops->remove(o->pobj);
+
+	if(res)
+		EMSG("%s: 0x%x", (char *)o->pobj->obj_id, res);
+
 	tee_obj_close(utc, o);
 
 	return res;
@@ -517,6 +538,9 @@ exit:
 
 	free(new_file);
 	free(old_file);
+
+	if(res)
+		EMSG("%s: 0x%x", (char *)object_id, res);
 
 	return res;
 }
@@ -731,6 +755,13 @@ TEE_Result syscall_storage_obj_read(unsigned long obj, void *data, size_t len,
 	u_count = bytes;
 	res = copy_to_user_private(count, &u_count, sizeof(*count));
 exit:
+	if(res) {
+		if (o && o->pobj)
+			EMSG("%s: 0x%x", (char *)o->pobj->obj_id, res);
+		else
+			EMSG("0x%x", res);
+	}
+
 	return res;
 }
 
@@ -781,6 +812,13 @@ TEE_Result syscall_storage_obj_write(unsigned long obj, void *data, size_t len)
 		o->info.dataSize = o->info.dataPosition;
 
 exit:
+	if(res) {
+		if (o && o->pobj)
+			EMSG("%s: 0x%x", (char *)o->pobj->obj_id, res);
+		else
+			EMSG("0x%x", res);
+	}
+
 	return res;
 }
 
@@ -825,7 +863,7 @@ TEE_Result syscall_storage_obj_trunc(unsigned long obj, size_t len)
 		o->info.dataSize = len;
 		break;
 	case TEE_ERROR_CORRUPT_OBJECT:
-		EMSG("Object corruption");
+		EMSG("Object corruption: %s", (char*)o->pobj->obj_id);
 		(void)tee_svc_storage_remove_corrupt_obj(sess, o);
 		break;
 	default:
@@ -834,6 +872,9 @@ TEE_Result syscall_storage_obj_trunc(unsigned long obj, size_t len)
 	}
 
 exit:
+	if(res)
+		EMSG("0x%x", res);
+
 	return res;
 }
 
@@ -846,8 +887,10 @@ TEE_Result syscall_storage_obj_seek(unsigned long obj, int32_t offset,
 	tee_fs_off_t new_pos = 0;
 
 	res = tee_obj_get(to_user_ta_ctx(sess->ctx), uref_to_vaddr(obj), &o);
-	if (res != TEE_SUCCESS)
+	if (res != TEE_SUCCESS) {
+		EMSG("%d", res);
 		return res;
+	}
 
 	if (!(o->info.handleFlags & TEE_HANDLE_FLAG_PERSISTENT))
 		return TEE_ERROR_BAD_STATE;
@@ -877,6 +920,13 @@ TEE_Result syscall_storage_obj_seek(unsigned long obj, int32_t offset,
 	}
 
 	o->info.dataPosition = new_pos;
+
+	if(res) {
+		if (o && o->pobj)
+			EMSG("%s: 0x%x", (char *)o->pobj->obj_id, res);
+		else
+			EMSG("0x%x", res);
+	}
 
 	return TEE_SUCCESS;
 }
