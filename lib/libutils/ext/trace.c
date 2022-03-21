@@ -167,7 +167,7 @@ void trace_vprintf(const char *function, int line, int level, bool level_ok,
 	if (boffs >= (sizeof(buf) - 1))
 		boffs = sizeof(buf) - 2;
 
-	buf[boffs] = '\n';
+	/* buf[boffs] = '\n'; */ /* add extra linefeed */
 	while (boffs && buf[boffs] == '\n')
 		boffs--;
 	boffs++;
