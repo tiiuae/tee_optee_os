@@ -18,6 +18,11 @@
 #error "Invalid value of TRACE_LEVEL"
 #endif
 
+#ifdef TRACE_ERROR_HIGHLIGHT
+static const char highlight_error[] = "\033[1;31m";
+static const char highlight_normal[] = "\033[0m";
+#endif /* TRACE_ERROR_HIGHLIGHT */
+
 #if (TRACE_LEVEL >= TRACE_ERROR)
 
 void trace_set_level(int level)
@@ -118,8 +123,17 @@ void trace_vprintf(const char *function, int line, int level, bool level_ok,
 	if (level_ok && level > trace_level)
 		return;
 
+#ifdef TRACE_ERROR_HIGHLIGHT
+	if (level == TRACE_ERROR) {
+		res = snprintk(buf + boffs, sizeof(buf) - boffs, "%s", highlight_error);
+		if (res < 0)
+			return;
+		boffs += res;
+	}
+#endif /* TRACE_ERROR_HIGHLIGHT */
+
 	/* Print the type of message */
-	res = snprintk(buf, sizeof(buf), "%c/",
+	res = snprintk(buf + boffs, sizeof(buf) - boffs, "%c/",
 		       trace_level_to_string(level, level_ok));
 	if (res < 0)
 		return;
@@ -163,6 +177,15 @@ void trace_vprintf(const char *function, int line, int level, bool level_ok,
 	res = vsnprintk(buf + boffs, sizeof(buf) - boffs, fmt, ap);
 	if (res > 0)
 		boffs += res;
+
+#ifdef TRACE_ERROR_HIGHLIGHT
+	if (level == TRACE_ERROR) {
+		res = snprintk(buf + boffs, sizeof(buf) - boffs, "%s", highlight_normal);
+		if (res < 0)
+			return;
+		boffs += res;
+	}
+#endif /* TRACE_ERROR_HIGHLIGHT */
 
 	if (boffs >= (sizeof(buf) - 1))
 		boffs = sizeof(buf) - 2;
