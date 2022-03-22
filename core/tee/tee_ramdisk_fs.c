@@ -24,6 +24,7 @@
 #include <utils/util.h>
 #include <utils/zf_log.h>
 #include <utils/zf_log_if.h>
+#include <kernel/tee_misc.h>
 
 static lfs_t lfs_ramdisk = { 0 };
 static lfs_t *fs_handle = &lfs_ramdisk;
@@ -70,6 +71,23 @@ static uint32_t lsfs_err_to_tee_res(int lfs_err)
     }
 }
 
+#define BH_BUFFER_LEN   224 /* TEE_RPMB_FS_FILENAME_LENGTH */
+static uint8_t bh_buffer[BH_BUFFER_LEN] = { 0 };
+
+static TEE_Result uuid_to_fname(struct tee_pobj *po, uint8_t *buf, uint32_t len)
+{
+    uint32_t hslen = TEE_B2HS_HSBUF_SIZE(po->obj_id_len);
+
+    if (len < hslen) {
+        EMSG("ERROR: len: %d, '%s'", hslen, (char *)po->obj_id);
+        return TEE_ERROR_SHORT_BUFFER;
+    }
+
+    tee_b2hs(po->obj_id, buf, po->obj_id_len, hslen);
+
+    return TEE_SUCCESS;
+}
+
 TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
                struct tee_file_handle **fh)
 {
@@ -89,15 +107,20 @@ TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
         return TEE_ERROR_OUT_OF_MEMORY;
     }
 
-    ret = lfs_file_open(fs_handle, file_handle, po->obj_id, lfs_flags);
+    ret = uuid_to_fname(po, bh_buffer, BH_BUFFER_LEN);
     if (ret) {
-        EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
+        return lsfs_err_to_tee_res(ret);
+    }
+
+    ret = lfs_file_open(fs_handle, file_handle, (char *)bh_buffer, lfs_flags);
+    if (ret) {
+        EMSG("ERROR: %d: %p", ret, file_handle);
         return lsfs_err_to_tee_res(ret);
     }
 
     ret = lfs_file_size(fs_handle, file_handle);
     if (ret < 0) {
-        EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
+        EMSG("ERROR: %d: %p", ret, file_handle);
         lfs_file_close(fs_handle, file_handle);
         free(file_handle);
         return lsfs_err_to_tee_res(ret);
@@ -107,7 +130,7 @@ TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
 
     *fh = (struct tee_file_handle *)file_handle;
 
-    IMSG("%s: handle: %p, size: %ld", (char*)po->obj_id, file_handle, *size);
+    IMSG("handle: %p, size: %ld", file_handle, *size);
 
     return 0;
 }
@@ -141,16 +164,21 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
         lfs_flags |= LFS_O_TRUNC;
     }
 
-    ret = lfs_file_open(fs_handle, file_handle, po->obj_id, lfs_flags);
+    ret = uuid_to_fname(po, bh_buffer, BH_BUFFER_LEN);
     if (ret) {
-        EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
+        goto out;
+    }
+
+    ret = lfs_file_open(fs_handle, file_handle, (char *)bh_buffer, lfs_flags);
+    if (ret) {
+        EMSG("ERROR: %d: %p", ret, file_handle);
         goto out;
     }
 
     if (head && head_size) {
         ret = lfs_file_write(fs_handle, file_handle, head, head_size);
         if (ret < 0) {
-            EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
+            EMSG("ERROR: %d: %p", ret, file_handle);
             goto out_file_cleanup;
         }
 
@@ -160,7 +188,7 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
     if (attr && attr_size) {
         ret = lfs_file_write(fs_handle, file_handle, attr, attr_size);
         if (ret < 0) {
-            EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
+            EMSG("ERROR: %d: %p", ret, file_handle);
             goto out_file_cleanup;
         }
 
@@ -170,7 +198,7 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
     if (data && data_size) {
         ret = lfs_file_write(fs_handle, file_handle, data, data_size);
         if (ret < 0) {
-            EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
+            EMSG("ERROR: %d: %p", ret, file_handle);
             goto out_file_cleanup;
         }
 
@@ -181,7 +209,7 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
 
     *fh = (struct tee_file_handle *)file_handle;
 
-    IMSG("%s: h: %p, p: %d", (char*)po->obj_id, file_handle, pos);
+    IMSG("h: %p, p: %d", file_handle, pos);
 
     return 0;
 
@@ -309,9 +337,12 @@ TEE_Result ramdisk_fs_remove(struct tee_pobj *po)
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
-    ZF_LOGI("%s", (char*)po->obj_id);
+    ret = uuid_to_fname(po, bh_buffer, BH_BUFFER_LEN);
+    if (ret) {
+        return lsfs_err_to_tee_res(ret);
+    }
 
-    ret = lfs_remove(fs_handle, po->obj_id);
+    ret = lfs_remove(fs_handle, (char *)bh_buffer);
     if (ret) {
         EMSG("ERROR: %d", ret);
     }
