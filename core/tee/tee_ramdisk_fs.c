@@ -13,7 +13,14 @@
 #include "bd/lfs_rambd.h"
 
 /* Local log level */
-#define ZF_LOG_LEVEL ZF_LOG_INFO
+#ifndef OPTEE_RAMDISK_TRACE_LEVEL
+#define OPTEE_RAMDISK_TRACE_LEVEL TRACE_LEVEL
+#endif
+
+#undef TRACE_LEVEL
+#define TRACE_LEVEL OPTEE_RAMDISK_TRACE_LEVEL
+#include <trace.h>
+
 #include <utils/util.h>
 #include <utils/zf_log.h>
 #include <utils/zf_log_if.h>
@@ -73,24 +80,24 @@ TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
     int lfs_flags = po->flags & 0x3;
 
     if (!po || !size || !fh) {
-        ZF_LOGF("ERROR: arguments");
+        EMSG("ERROR: arguments");
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
     if (!file_handle) {
-        ZF_LOGF("ERROR: out of memory");
+        EMSG("ERROR: out of memory");
         return TEE_ERROR_OUT_OF_MEMORY;
     }
 
     ret = lfs_file_open(fs_handle, file_handle, po->obj_id, lfs_flags);
     if (ret) {
-        ZF_LOGE("ERROR: %d: %s", ret, (char*)po->obj_id);
+        EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
         return lsfs_err_to_tee_res(ret);
     }
 
     ret = lfs_file_size(fs_handle, file_handle);
     if (ret < 0) {
-        ZF_LOGF("ERROR: %d: %s", ret, (char*)po->obj_id);
+        EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
         lfs_file_close(fs_handle, file_handle);
         free(file_handle);
         return lsfs_err_to_tee_res(ret);
@@ -100,7 +107,7 @@ TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
 
     *fh = (struct tee_file_handle *)file_handle;
 
-    ZF_LOGI("%s: handle: %p, size: %ld", (char*)po->obj_id, file_handle, *size);
+    IMSG("%s: handle: %p, size: %ld", (char*)po->obj_id, file_handle, *size);
 
     return 0;
 }
@@ -120,30 +127,30 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
     uint32_t pos = 0;
 
     if (!po || !fh) {
-        ZF_LOGF("ERROR: arguments");
+        EMSG("ERROR: arguments");
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
     if (!file_handle) {
-        ZF_LOGF("ERROR: out of memory");
+        EMSG("ERROR: out of memory");
         return TEE_ERROR_OUT_OF_MEMORY;
     }
 
     if (overwrite) {
-        ZF_LOGI("LFS_O_TRUNC");
+        IMSG("LFS_O_TRUNC");
         lfs_flags |= LFS_O_TRUNC;
     }
 
     ret = lfs_file_open(fs_handle, file_handle, po->obj_id, lfs_flags);
     if (ret) {
-        ZF_LOGE("ERROR: %d: %s", ret, (char*)po->obj_id);
+        EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
         goto out;
     }
 
     if (head && head_size) {
         ret = lfs_file_write(fs_handle, file_handle, head, head_size);
         if (ret < 0) {
-            ZF_LOGE("ERROR: %d: %s", ret, (char*)po->obj_id);
+            EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
             goto out_file_cleanup;
         }
 
@@ -153,7 +160,7 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
     if (attr && attr_size) {
         ret = lfs_file_write(fs_handle, file_handle, attr, attr_size);
         if (ret < 0) {
-            ZF_LOGE("ERROR: %d: %s", ret, (char*)po->obj_id);
+            EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
             goto out_file_cleanup;
         }
 
@@ -163,7 +170,7 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
     if (data && data_size) {
         ret = lfs_file_write(fs_handle, file_handle, data, data_size);
         if (ret < 0) {
-            ZF_LOGE("ERROR: %d: %s", ret, (char*)po->obj_id);
+            EMSG("ERROR: %d: %s", ret, (char*)po->obj_id);
             goto out_file_cleanup;
         }
 
@@ -174,7 +181,7 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
 
     *fh = (struct tee_file_handle *)file_handle;
 
-    ZF_LOGI("%s: h: %p, p: %d", (char*)po->obj_id, file_handle, pos);
+    IMSG("%s: h: %p, p: %d", (char*)po->obj_id, file_handle, pos);
 
     return 0;
 
@@ -192,7 +199,7 @@ void ramdisk_fs_close(struct tee_file_handle **fh)
     if (!file_handle)
         return;
 
-    ZF_LOGI("%p", file_handle);
+    IMSG("%p", file_handle);
 
     lfs_file_close(fs_handle, file_handle);
 
@@ -207,23 +214,23 @@ TEE_Result ramdisk_fs_read(struct tee_file_handle *fh, size_t pos,
     lfs_file_t *file_handle = (lfs_file_t *)fh;
 
     if (!fh || !buf) {
-        ZF_LOGF("ERROR: arguments");
+        EMSG("ERROR: arguments");
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
     ret = lfs_file_seek(fs_handle, file_handle, pos, LFS_SEEK_SET);
     if (ret < 0) {
-        ZF_LOGE("ERROR: %d: %p", ret, file_handle);
+        EMSG("ERROR: %d: %p", ret, file_handle);
         return lsfs_err_to_tee_res(ret);
     }
 
     ret = lfs_file_read(fs_handle, file_handle, buf, *len);
     if (ret < 0) {
-        ZF_LOGE("ERROR: %d: %p", ret, file_handle);
+        EMSG("ERROR: %d: %p", ret, file_handle);
         return lsfs_err_to_tee_res(ret);
     }
 
-    ZF_LOGI("%p, p: %ld, b: %ld, r: %d", file_handle, pos, *len, ret);
+    IMSG("%p, p: %ld, b: %ld, r: %d", file_handle, pos, *len, ret);
 
     *len = ret;
 
@@ -237,29 +244,29 @@ TEE_Result ramdisk_fs_write(struct tee_file_handle *fh, size_t pos,
     lfs_file_t *file_handle = (lfs_file_t *)fh;
 
     if (!fh || !buf) {
-        ZF_LOGF("ERROR: arguments");
+        EMSG("ERROR: arguments");
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
     ret = lfs_file_seek(fs_handle, file_handle, pos, LFS_SEEK_SET);
     if (ret < 0) {
-        ZF_LOGE("ERROR: %d: %p", ret, file_handle);
+        EMSG("ERROR: %d: %p", ret, file_handle);
         goto out;
     }
 
     ret = lfs_file_write(fs_handle, file_handle, buf, len);
     if (ret < 0) {
-        ZF_LOGE("ERROR: %d: %p", ret, file_handle);
+        EMSG("ERROR: %d: %p", ret, file_handle);
         goto out;
     }
 
     if (ret != len) {
-        ZF_LOGF("write failed: %d / %ld", ret, len);
+        EMSG("write failed: %d / %ld", ret, len);
         ret = LFS_ERR_NOSPC;
         goto out;
     }
 
-    ZF_LOGI("%p, p: %ld, l: %ld", file_handle, pos, len);
+    IMSG("%p, p: %ld, l: %ld", file_handle, pos, len);
 
     ret = 0;
 
@@ -273,15 +280,15 @@ TEE_Result ramdisk_fs_truncate(struct tee_file_handle *fh, size_t size)
     lfs_file_t *file_handle = (lfs_file_t *) fh;
 
     if (!fh) {
-        ZF_LOGF("ERROR: arguments");
+        EMSG("ERROR: arguments");
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
-    ZF_LOGI("%p, s: %ld", file_handle, size);
+    IMSG("%p, s: %ld", file_handle, size);
 
     ret = lfs_file_truncate(fs_handle, file_handle, size);
     if (ret) {
-        ZF_LOGE("ERROR: %d", ret);
+        EMSG("ERROR: %d", ret);
     }
 
     return lsfs_err_to_tee_res(ret);
@@ -298,7 +305,7 @@ TEE_Result ramdisk_fs_remove(struct tee_pobj *po)
     int ret = -1;
 
     if (!po) {
-        ZF_LOGF("ERROR: arguments");
+        EMSG("ERROR: arguments");
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
@@ -306,7 +313,7 @@ TEE_Result ramdisk_fs_remove(struct tee_pobj *po)
 
     ret = lfs_remove(fs_handle, po->obj_id);
     if (ret) {
-        ZF_LOGF("ERROR: %d", ret);
+        EMSG("ERROR: %d", ret);
     }
 
     return lsfs_err_to_tee_res(ret);
