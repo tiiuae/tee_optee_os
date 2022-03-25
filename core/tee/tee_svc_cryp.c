@@ -858,24 +858,14 @@ static const struct attr_ops attr_ops[] = {
 
 static TEE_Result get_user_u64_as_size_t(size_t *dst, uint64_t *src)
 {
-	uint64_t d = 0;
-	TEE_Result res = copy_from_user(&d, src, sizeof(d));
-
-	/*
-	 * On 32-bit systems a size_t can't hold a uint64_t so we need to
-	 * check that the value isn't too large.
-	 */
-	if (!res && ADD_OVERFLOW(0, d, dst))
-		return TEE_ERROR_OVERFLOW;
-
-	return res;
+	*dst = *src;
+	return 0;
 }
 
 static TEE_Result put_user_u64(uint64_t *dst, size_t value)
 {
-	uint64_t v = value;
-
-	return copy_to_user(dst, &v, sizeof(v));
+	*dst = value;
+	return 0;
 }
 
 TEE_Result syscall_cryp_obj_get_info(unsigned long obj, TEE_ObjectInfo *info)
