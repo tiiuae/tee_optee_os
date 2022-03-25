@@ -457,10 +457,6 @@ TEE_Result crypto_acipher_rsaes_encrypt(uint32_t algo,
 		.N = key->n
 	};
 
-	static prng_state prng;
-	int wprng = find_prng("fortuna");
-	rng_make_prng(256,wprng, &prng, NULL);
-
 	mod_size =  ltc_mp.unsigned_size((void *)(ltc_key.N));
 	if (*dst_len < mod_size) {
 		*dst_len = mod_size;
@@ -481,7 +477,7 @@ TEE_Result crypto_acipher_rsaes_encrypt(uint32_t algo,
 
 	ltc_res = rsa_encrypt_key_ex(src, src_len, dst,
 					 (unsigned long *)(dst_len), label,
-					 label_len, &prng, wprng,
+					 label_len, &sel4_prng, find_prng("fortuna"),
 					 ltc_hashindex, ltc_rsa_algo, &ltc_key);
 	switch (ltc_res) {
 	case CRYPT_PK_INVALID_PADDING:

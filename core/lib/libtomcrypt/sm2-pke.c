@@ -19,6 +19,8 @@
 /* SM2 uses 256 bit unsigned integers in big endian format */
 #define SM2_INT_SIZE_BYTES 32
 
+extern prng_state sel4_prng;
+
 static TEE_Result
 sm2_uncompressed_bytes_to_point(ecc_point *p, const ltc_ecc_dp *dp,
 				const uint8_t *x1y1, size_t max_size,
@@ -356,8 +358,8 @@ TEE_Result sm2_ltc_pke_encrypt(struct ecc_public_key *key, const uint8_t *src,
 
 	/* Step A1: generate random number 1 <= k < n */
 
-	ltc_res = rand_bn_upto(k, ltc_key.dp.order, NULL,
-			       find_prng("prng_crypto"));
+	ltc_res = rand_bn_upto(k, ltc_key.dp.order, &sel4_prng,
+			       find_prng("fortuna"));
 	if (ltc_res != CRYPT_OK) {
 		res = TEE_ERROR_BAD_STATE;
 		goto out;
