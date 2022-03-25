@@ -579,7 +579,7 @@ TEE_Result crypto_acipher_rsassa_sign(uint32_t algo, struct rsa_keypair *key,
 	ltc_sig_len = mod_size;
 
 	ltc_res = rsa_sign_hash_ex(msg, msg_len, sig, &ltc_sig_len,
-				   ltc_rsa_algo, NULL, find_prng("prng_crypto"),
+				   ltc_rsa_algo, &sel4_prng, find_prng("fortuna"),
 				   ltc_hashindex, salt_len, &ltc_key);
 
 	*sig_len = ltc_sig_len;
