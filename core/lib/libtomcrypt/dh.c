@@ -12,6 +12,8 @@
 
 #include "acipher_helpers.h"
 
+extern prng_state sel4_prng;
+
 TEE_Result crypto_acipher_alloc_dh_keypair(struct dh_keypair *s,
 					   size_t key_size_bits __unused)
 {
@@ -52,7 +54,7 @@ TEE_Result crypto_acipher_gen_dh_key(struct dh_keypair *key, struct bignum *q,
 	/* Generate the DH key */
 	mp_copy(key->g, ltc_tmp_key.base);
 	mp_copy(key->p, ltc_tmp_key.prime);
-	ltc_res = dh_make_key(NULL, find_prng("prng_crypto"), q, xbits,
+	ltc_res = dh_make_key(&sel4_prng, find_prng("fortuna"), q, xbits,
 			      &ltc_tmp_key);
 	if (ltc_res != CRYPT_OK) {
 		res = TEE_ERROR_BAD_PARAMETERS;

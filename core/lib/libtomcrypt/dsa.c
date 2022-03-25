@@ -13,6 +13,8 @@
 
 #include "acipher_helpers.h"
 
+extern prng_state sel4_prng;
+
 TEE_Result crypto_acipher_alloc_dsa_keypair(struct dsa_keypair *s,
 					    size_t key_size_bits __unused)
 {
@@ -77,7 +79,7 @@ TEE_Result crypto_acipher_gen_dsa_key(struct dsa_keypair *key, size_t key_size)
 	mp_copy(key->q, ltc_tmp_key.q);
 
 	/* Generate the DSA key */
-	ltc_res = dsa_generate_key(NULL, find_prng("prng_crypto"),
+	ltc_res = dsa_generate_key(&sel4_prng, find_prng("fortuna"),
 				   &ltc_tmp_key);
 	if (ltc_res)
 		return TEE_ERROR_BAD_PARAMETERS;
@@ -140,8 +142,8 @@ TEE_Result crypto_acipher_dsa_sign(uint32_t algo, struct dsa_keypair *key,
 		goto err;
 	}
 
-	ltc_res = dsa_sign_hash_raw(msg, msg_len, r, s, NULL,
-				    find_prng("prng_crypto"), &ltc_key);
+	ltc_res = dsa_sign_hash_raw(msg, msg_len, r, s, &sel4_prng,
+				 find_prng("fortuna"), &ltc_key);
 
 	if (ltc_res == CRYPT_OK) {
 		*sig_len = 2 * mp_unsigned_bin_size(ltc_key.q);

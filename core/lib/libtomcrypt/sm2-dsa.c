@@ -12,6 +12,8 @@
 
 #include "acipher_helpers.h"
 
+extern prng_state sel4_prng;
+
 /* SM2 uses 256 bit unsigned integers in big endian format */
 #define SM2_INT_SIZE_BYTES 32
 
@@ -59,8 +61,8 @@ TEE_Result sm2_ltc_dsa_sign(uint32_t algo, struct ecc_keypair *key,
 
 	/* Step A3: generate random number 1 <= k < n */
 A3:
-	ltc_res = rand_bn_upto(k, ltc_key.dp.order, NULL,
-			       find_prng("prng_crypto"));
+	ltc_res = rand_bn_upto(k, ltc_key.dp.order, &sel4_prng, find_prng("fortuna"));
+
 	if (ltc_res != CRYPT_OK) {
 		res = TEE_ERROR_BAD_STATE;
 		goto out;

@@ -382,7 +382,7 @@ static TEE_Result _ltc_ecc_sign(uint32_t algo, struct ecc_keypair *key,
 
 	ltc_sig_len = *sig_len;
 	ltc_res = ecc_sign_hash_rfc7518(msg, msg_len, sig, &ltc_sig_len,
-				    NULL, find_prng("prng_crypto"), &ltc_key);
+				    &sel4_prng, find_prng("fortuna"), &ltc_key);
 	if (ltc_res == CRYPT_OK) {
 		res = TEE_SUCCESS;
 	} else {
