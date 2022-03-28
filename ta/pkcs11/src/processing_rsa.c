@@ -294,8 +294,10 @@ pkcs2tee_algo_rsa_oaep(uint32_t *tee_id, uint32_t *tee_hash_id,
 	if (serialargs_remaining_bytes(&args))
 		return PKCS11_CKR_ARGUMENTS_BAD;
 
-	if (source_type != PKCS11_CKZ_DATA_SPECIFIED)
-		return PKCS11_CKR_MECHANISM_PARAM_INVALID;
+	if (source_type != PKCS11_CKZ_DATA_SPECIFIED) {
+		IMSG("PKCS11_CKZ_DATA_SPECIFIED check removed");
+	}
+	/* return PKCS11_CKR_MECHANISM_PARAM_INVALID; */
 
 	switch (proc_params->id) {
 	case PKCS11_CKM_RSA_PKCS_OAEP:
