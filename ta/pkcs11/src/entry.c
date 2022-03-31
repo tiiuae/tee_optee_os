@@ -3,7 +3,7 @@
  * Copyright (c) 2018-2020, Linaro Limited
  */
 /* Local log level */
-#define ZF_LOG_LEVEL ZF_LOG_INFO
+#define ZF_LOG_LEVEL ZF_LOG_ERROR
 #define PLAINTEXT_DATA
 
 #include <assert.h>
@@ -370,7 +370,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *tee_session, uint32_t cmd,
 		return TEE_ERROR_NOT_SUPPORTED;
 	}
 
-	ZF_LOGI("%s rc %#"PRIx32"/%s", id2str_ta_cmd(cmd), rc, id2str_rc(rc));
+	if (!rc)
+		ZF_LOGI("%s rc %#"PRIx32"/%s", id2str_ta_cmd(cmd), rc, id2str_rc(rc));
+	else
+		ZF_LOGE("\033[0;31m ERR %s rc %#"PRIx32"/%s \033[0m", id2str_ta_cmd(cmd), rc, id2str_rc(rc));
 
 	TEE_MemMove(params[0].memref.buffer, &rc, sizeof(rc));
 	params[0].memref.size = sizeof(rc);
