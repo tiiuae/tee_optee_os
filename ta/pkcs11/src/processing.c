@@ -781,8 +781,13 @@ out:
 		break;
 	default:
 		/* ONESHOT and FINAL terminates processing on success */
-		if (rc != PKCS11_CKR_BUFFER_TOO_SMALL)
-			release_active_processing(session);
+		if (rc != PKCS11_CKR_BUFFER_TOO_SMALL) {
+			if (rc == PKCS11_CKR_CANCEL) {
+				rc = PKCS11_CKR_OK;
+			} else {
+				release_active_processing(session);
+			}
+		}
 		break;
 	}
 
