@@ -184,9 +184,16 @@ enum pkcs11_rc step_digest_operation(struct pkcs11_session *session,
 		return PKCS11_CKR_OK;
 
 	case PKCS11_FUNC_STEP_ONESHOT:
-		if (!out_buf)
-			return PKCS11_CKR_ARGUMENTS_BAD;
-
+		/* If ouput buffer is null, processing must continue and we need
+		 * to return correct digest length to caller
+		 */
+		if (!out_buf) {
+			TEE_OperationInfoMultiple op_info;
+			uint32_t plen = sizeof(op_info);
+			TEE_GetOperationInfoMultiple(proc->tee_op_handle, &op_info, &plen);
+			params[2].memref.size = op_info.digestLength;
+			return PKCS11_CKR_CANCEL;
+		}
 		goto do_final;
 
 	case PKCS11_FUNC_STEP_FINAL:
