@@ -380,33 +380,53 @@ const struct tee_file_operations ramdisk_fs_ops = {
     .readdir = ramdisk_fs_readdir,
 };
 
-TEE_Result ramdisk_fs_init(void **buf_out,
+TEE_Result ramdisk_fs_init(void *buf_in,
+                           uint32_t in_len,
+                           void **buf_out,
                            uint32_t *out_len)
 {
     TEE_Result ret = TEE_ERROR_GENERIC;
     uint32_t ramdisk_buf_len = ramdisk_cfg.block_size * ramdisk_cfg.block_count;
 
-    if (!buf_out || !out_len) {
+    /* buffer required either in or out */
+    if (!buf_in && !buf_out) {
         ZF_LOGF("ERROR: Invalid parameters");
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
-    /* Allocate buffer for ramdisk.
+    if (buf_out && !out_len) {
+        ZF_LOGF("ERROR: Invalid parameters");
+        return TEE_ERROR_BAD_PARAMETERS;
+    }
+
+    /* Use provided buffer or allocate a new
      *
      * copied from littlefs/bd/lfs_rambd.c: lfs_rambd_create()
      */
+    if (buf_in) {
+        if (in_len < ramdisk_buf_len) {
+            ZF_LOGE("ERROR: short buffer");
+            ret = TEE_ERROR_OVERFLOW;
+            goto out;
+        }
+        ZF_LOGI("init buffer: %p (%d)", buf_in, in_len);
 
-    rambd_ctx.buffer = calloc(1, ramdisk_buf_len);
-    if (!rambd_ctx.buffer) {
-        ZF_LOGE("ERROR: out of memory");
-        ret = TEE_ERROR_OUT_OF_MEMORY;
-        goto out;
-    }
+        rambd_ctx.buffer = buf_in;
+    } else {
+        rambd_ctx.buffer = calloc(1, ramdisk_buf_len);
+        if (!rambd_ctx.buffer) {
+            ZF_LOGE("ERROR: out of memory");
+            ret = TEE_ERROR_OUT_OF_MEMORY;
+            goto out;
+        }
 
-    ret = lfs_format(fs_handle, &ramdisk_cfg);
-    if (ret) {
-        ZF_LOGF("ERROR: %d", ret);
-        goto out;
+        ZF_LOGI("allocate buffer: %p", rambd_ctx.buffer);
+
+        ret = lfs_format(fs_handle, &ramdisk_cfg);
+        if (ret) {
+            ZF_LOGF("ERROR: %d", ret);
+            goto out;
+        }
     }
 
     ret = lfs_mount(fs_handle, &ramdisk_cfg);
@@ -415,27 +435,15 @@ TEE_Result ramdisk_fs_init(void **buf_out,
         goto out;
     }
 
-    *buf_out = rambd_ctx.buffer;
-    *out_len = ramdisk_buf_len;
+    if (buf_out) {
+        *buf_out = rambd_ctx.buffer;
+        *out_len = ramdisk_buf_len;
+    }
 
 out:
-    if (ret)
+    /* don't free provided buffer */
+    if (ret && !buf_in)
         free(rambd_ctx.buffer);
-
-    return ret;
-}
-
-    ret = lfs_format(fs_handle, &ramdisk_cfg);
-    if (ret) {
-        ZF_LOGF("ERROR: %d", ret);
-        return ret;
-    }
-
-    ret = lfs_mount(fs_handle, &ramdisk_cfg);
-    if (ret) {
-        ZF_LOGF("ERROR: %d", ret);
-        return ret;
-    }
 
     return ret;
 }
