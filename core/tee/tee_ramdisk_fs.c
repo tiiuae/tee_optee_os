@@ -26,6 +26,8 @@
 #include <utils/zf_log_if.h>
 #include <kernel/tee_misc.h>
 
+#define ALIGN_MASK_64BIT    0x7
+
 static lfs_t lfs_ramdisk = { 0 };
 static lfs_t *fs_handle = &lfs_ramdisk;
 
@@ -382,11 +384,15 @@ const struct tee_file_operations ramdisk_fs_ops = {
 
 TEE_Result ramdisk_fs_init(void *buf_in,
                            uint32_t in_len,
+                           uint32_t ext_hdr_len,
                            void **buf_out,
                            uint32_t *out_len)
 {
     TEE_Result ret = TEE_ERROR_GENERIC;
     uint32_t ramdisk_buf_len = ramdisk_cfg.block_size * ramdisk_cfg.block_count;
+
+    uint8_t *rambd_ext_buffer = NULL;
+    uint32_t ext_buf_len = ext_hdr_len + ramdisk_buf_len;
 
     /* buffer required either in or out */
     if (!buf_in && !buf_out) {
@@ -399,26 +405,42 @@ TEE_Result ramdisk_fs_init(void *buf_in,
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
+    /* check 64bit alignment for ramdisk buffer which starts
+     * after external header
+     */
+    if (ext_hdr_len & ALIGN_MASK_64BIT) {
+        ZF_LOGF("ERROR: alignment: %d", ext_hdr_len);
+        return TEE_ERROR_BAD_PARAMETERS;
+    }
+
     /* Use provided buffer or allocate a new
      *
      * copied from littlefs/bd/lfs_rambd.c: lfs_rambd_create()
      */
     if (buf_in) {
-        if (in_len < ramdisk_buf_len) {
+        if (in_len < ext_hdr_len + ramdisk_buf_len) {
             ZF_LOGE("ERROR: short buffer");
             ret = TEE_ERROR_OVERFLOW;
             goto out;
         }
-        ZF_LOGI("init buffer: %p (%d)", buf_in, in_len);
+        ZF_LOGI("init buffer: %p (%d / %d)", buf_in, ext_hdr_len, in_len);
 
-        rambd_ctx.buffer = buf_in;
+        /* ramdisk buffer starts after ext header */
+        rambd_ctx.buffer = buf_in + ext_hdr_len;
+
+        /* return input buffer */
+        rambd_ext_buffer = buf_in;
     } else {
-        rambd_ctx.buffer = calloc(1, ramdisk_buf_len);
-        if (!rambd_ctx.buffer) {
+        /* allocate single buffer for external header and ramdisk */
+        rambd_ext_buffer = calloc(1, ext_buf_len);
+        if (!rambd_ext_buffer) {
             ZF_LOGE("ERROR: out of memory");
             ret = TEE_ERROR_OUT_OF_MEMORY;
             goto out;
         }
+
+        /* setup ramdisk buffer from ext buffer */
+        rambd_ctx.buffer = rambd_ext_buffer + ext_hdr_len;
 
         ZF_LOGI("allocate buffer: %p", rambd_ctx.buffer);
 
@@ -436,14 +458,14 @@ TEE_Result ramdisk_fs_init(void *buf_in,
     }
 
     if (buf_out) {
-        *buf_out = rambd_ctx.buffer;
-        *out_len = ramdisk_buf_len;
+        *buf_out = rambd_ext_buffer;
+        *out_len = ext_buf_len;
     }
 
 out:
     /* don't free provided buffer */
     if (ret && !buf_in)
-        free(rambd_ctx.buffer);
+        free(rambd_ext_buffer);
 
     return ret;
 }
