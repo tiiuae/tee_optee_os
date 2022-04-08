@@ -11,15 +11,12 @@
 #include <tee_api_defines_extensions.h>
 #include <tee/tee_cryp_utl.h>
 #include <trace.h>
-#include <utils/util.h>
-#include <utils/zf_log.h>
 #include <utee_defines.h>
 
 #include "acipher_helpers.h"
 
 extern prng_state sel4_prng;
 
-//#define ZF_LOGI  printf
 /*
  * Compute the LibTomCrypt "hashindex" given a TEE Algorithm "algo"
  * Return
@@ -163,10 +160,10 @@ TEE_Result crypto_acipher_gen_rsa_key(struct rsa_keypair *key, size_t key_size)
 
 	if (ltc_res != CRYPT_OK) {
 		res = TEE_ERROR_BAD_PARAMETERS;
-		ZF_LOGI("%s %d", __func__, __LINE__);
+		IMSG("%s %d", __func__, __LINE__);
 	} else if ((size_t)mp_count_bits(ltc_tmp_key.N) != key_size) {
 		rsa_free(&ltc_tmp_key);
-		ZF_LOGI("%s %d", __func__, __LINE__);
+		IMSG("%s %d", __func__, __LINE__);
 		res = TEE_ERROR_BAD_PARAMETERS;
 	} else {
 		/* Copy the key */
