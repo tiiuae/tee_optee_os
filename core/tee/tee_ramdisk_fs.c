@@ -21,9 +21,6 @@
 #define TRACE_LEVEL OPTEE_RAMDISK_TRACE_LEVEL
 #include <trace.h>
 
-#include <utils/util.h>
-#include <utils/zf_log.h>
-#include <utils/zf_log_if.h>
 #include <kernel/tee_misc.h>
 
 #define ALIGN_MASK_64BIT    0x7
@@ -328,7 +325,8 @@ TEE_Result ramdisk_fs_truncate(struct tee_file_handle *fh, size_t size)
 TEE_Result ramdisk_fs_rename(struct tee_pobj *old_po, struct tee_pobj *new_po,
                  bool overwrite)
 {
-    ZF_LOGF("not implemented");
+    EMSG("ERROR: not implemented");
+    return TEE_ERROR_NOT_IMPLEMENTED;
 }
 
 TEE_Result ramdisk_fs_remove(struct tee_pobj *po)
@@ -355,17 +353,19 @@ TEE_Result ramdisk_fs_remove(struct tee_pobj *po)
 
 TEE_Result ramdisk_fs_opendir(const TEE_UUID *uuid, struct tee_fs_dir **d)
 {
-    ZF_LOGF("not implemented");
+    EMSG("ERROR: not implemented");
+    return TEE_ERROR_NOT_IMPLEMENTED;
 }
 
 void ramdisk_fs_closedir(struct tee_fs_dir *d)
 {
-    ZF_LOGF("not implemented");
+    EMSG("ERROR: not implemented");
 }
 
 TEE_Result ramdisk_fs_readdir(struct tee_fs_dir *d, struct tee_fs_dirent **ent)
 {
-    ZF_LOGF("not implemented");
+    EMSG("ERROR: not implemented");
+    return TEE_ERROR_NOT_IMPLEMENTED;
 }
 
 const struct tee_file_operations ramdisk_fs_ops = {
@@ -396,12 +396,12 @@ TEE_Result ramdisk_fs_init(void *buf_in,
 
     /* buffer required either in or out */
     if (!buf_in && !buf_out) {
-        ZF_LOGF("ERROR: Invalid parameters");
+        EMSG("ERROR: Invalid parameters");
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
     if (buf_out && !out_len) {
-        ZF_LOGF("ERROR: Invalid parameters");
+        EMSG("ERROR: Invalid parameters");
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
@@ -409,7 +409,7 @@ TEE_Result ramdisk_fs_init(void *buf_in,
      * after external header
      */
     if (ext_hdr_len & ALIGN_MASK_64BIT) {
-        ZF_LOGF("ERROR: alignment: %d", ext_hdr_len);
+        EMSG("ERROR: alignment: %d", ext_hdr_len);
         return TEE_ERROR_BAD_PARAMETERS;
     }
 
@@ -419,11 +419,11 @@ TEE_Result ramdisk_fs_init(void *buf_in,
      */
     if (buf_in) {
         if (in_len < ext_hdr_len + ramdisk_buf_len) {
-            ZF_LOGE("ERROR: short buffer");
+            EMSG("ERROR: short buffer");
             ret = TEE_ERROR_OVERFLOW;
             goto out;
         }
-        ZF_LOGI("init buffer: %p (%d / %d)", buf_in, ext_hdr_len, in_len);
+        IMSG("init buffer: %p (%d / %d)", buf_in, ext_hdr_len, in_len);
 
         /* ramdisk buffer starts after ext header */
         rambd_ctx.buffer = buf_in + ext_hdr_len;
@@ -434,7 +434,7 @@ TEE_Result ramdisk_fs_init(void *buf_in,
         /* allocate single buffer for external header and ramdisk */
         rambd_ext_buffer = calloc(1, ext_buf_len);
         if (!rambd_ext_buffer) {
-            ZF_LOGE("ERROR: out of memory");
+            EMSG("ERROR: out of memory");
             ret = TEE_ERROR_OUT_OF_MEMORY;
             goto out;
         }
@@ -442,18 +442,18 @@ TEE_Result ramdisk_fs_init(void *buf_in,
         /* setup ramdisk buffer from ext buffer */
         rambd_ctx.buffer = rambd_ext_buffer + ext_hdr_len;
 
-        ZF_LOGI("allocate buffer: %p", rambd_ctx.buffer);
+        IMSG("allocate buffer: %p", rambd_ctx.buffer);
 
         ret = lfs_format(fs_handle, &ramdisk_cfg);
         if (ret) {
-            ZF_LOGF("ERROR: %d", ret);
+            EMSG("ERROR: %d", ret);
             goto out;
         }
     }
 
     ret = lfs_mount(fs_handle, &ramdisk_cfg);
     if (ret) {
-        ZF_LOGF("ERROR: %d", ret);
+        EMSG("ERROR: %d", ret);
         goto out;
     }
 
