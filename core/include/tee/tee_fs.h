@@ -72,6 +72,10 @@ bool plat_rpmb_key_is_ready(void);
 extern const struct tee_file_operations ramdisk_fs_ops;
 TEE_Result ramdisk_fs_init(void *buf_in, uint32_t in_len, uint32_t ext_hdr_len,
                            void **buf_out, uint32_t *out_len);
+
+uint32_t ramdisk_fs_read_storage_counter(void);
+void ramdisk_fs_reset_storage_counter(void);
+
 #endif
 
 /*

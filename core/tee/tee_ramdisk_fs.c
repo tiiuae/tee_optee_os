@@ -31,6 +31,8 @@ static lfs_t *fs_handle = &lfs_ramdisk;
 static struct lfs_rambd_config rambd_cfg = { .erase_value = -1 };
 static lfs_rambd_t rambd_ctx = { .cfg = &rambd_cfg };
 
+static uint32_t storage_write_counter;
+
 static const struct lfs_config ramdisk_cfg = {
     .read  = lfs_rambd_read,
     .prog  = lfs_rambd_prog,
@@ -48,6 +50,16 @@ static const struct lfs_config ramdisk_cfg = {
 
     .context = &rambd_ctx,
 };
+
+uint32_t ramdisk_fs_read_storage_counter(void)
+{
+    return storage_write_counter;
+}
+void ramdisk_fs_reset_storage_counter(void)
+{
+    storage_write_counter = 0;
+}
+
 
 static uint32_t lsfs_err_to_tee_res(int lfs_err)
 {
@@ -206,7 +218,7 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
     }
 
     ret = TEE_SUCCESS;
-
+    storage_write_counter++;
     *fh = (struct tee_file_handle *)file_handle;
 
     IMSG("h: %p, p: %d", file_handle, pos);
@@ -293,7 +305,7 @@ TEE_Result ramdisk_fs_write(struct tee_file_handle *fh, size_t pos,
         ret = LFS_ERR_NOSPC;
         goto out;
     }
-
+    storage_write_counter++;
     IMSG("%p, p: %ld, l: %ld", file_handle, pos, len);
 
     ret = 0;
@@ -318,7 +330,7 @@ TEE_Result ramdisk_fs_truncate(struct tee_file_handle *fh, size_t size)
     if (ret) {
         EMSG("ERROR: %d", ret);
     }
-
+    storage_write_counter++;
     return lsfs_err_to_tee_res(ret);
 }
 
@@ -347,7 +359,7 @@ TEE_Result ramdisk_fs_remove(struct tee_pobj *po)
     if (ret) {
         EMSG("ERROR: %d", ret);
     }
-
+    storage_write_counter++;
     return lsfs_err_to_tee_res(ret);
 }
 
@@ -461,7 +473,7 @@ TEE_Result ramdisk_fs_init(void *buf_in,
         *buf_out = rambd_ext_buffer;
         *out_len = ext_buf_len;
     }
-
+    storage_write_counter = 0;
 out:
     /* don't free provided buffer */
     if (ret && !buf_in)
