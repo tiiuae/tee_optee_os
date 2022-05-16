@@ -752,6 +752,7 @@ TEE_Result syscall_storage_obj_read(unsigned long obj, void *data, size_t len,
 		if (res == TEE_ERROR_CORRUPT_OBJECT) {
 			EMSG("Object corrupt");
 			tee_svc_storage_remove_corrupt_obj(sess, o);
+			o = NULL;
 		}
 		goto exit;
 	}
@@ -926,13 +927,6 @@ TEE_Result syscall_storage_obj_seek(unsigned long obj, int32_t offset,
 	}
 
 	o->info.dataPosition = new_pos;
-
-	if(res) {
-		if (o && o->pobj)
-			EMSG("%s: 0x%x", (char *)o->pobj->obj_id, res);
-		else
-			EMSG("0x%x", res);
-	}
 
 	return TEE_SUCCESS;
 }

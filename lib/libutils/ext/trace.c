@@ -190,10 +190,13 @@ void trace_vprintf(const char *function, int line, int level, bool level_ok,
 	if (boffs >= (sizeof(buf) - 1))
 		boffs = sizeof(buf) - 2;
 
-	/* buf[boffs] = '\n'; */ /* add extra linefeed */
+#if 0 /* disable adding extra linefeed */
+	buf[boffs] = '\n';
 	while (boffs && buf[boffs] == '\n')
 		boffs--;
 	boffs++;
+#endif
+
 	buf[boffs + 1] = '\0';
 
 	trace_ext_puts(buf);

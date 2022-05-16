@@ -100,19 +100,23 @@ static TEE_Result uuid_to_fname(struct tee_pobj *po, uint8_t *buf, uint32_t len)
     return TEE_SUCCESS;
 }
 
-TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
+static TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
                struct tee_file_handle **fh)
 {
     int ret = -1;
-    lfs_file_t *file_handle = calloc(1, sizeof(lfs_file_t));
+    lfs_file_t *file_handle = NULL;
 
-    /* include only RW flags, fail if file does not exist */
-    int lfs_flags = po->flags & 0x3;
+    int lfs_flags = 0;
 
     if (!po || !size || !fh) {
         EMSG("ERROR: arguments");
         return TEE_ERROR_BAD_PARAMETERS;
     }
+
+    /* include only RW flags, fail if file does not exist */
+    lfs_flags = po->flags & 0x3;
+
+    file_handle = calloc(1, sizeof(lfs_file_t));
 
     if (!file_handle) {
         EMSG("ERROR: out of memory");
@@ -121,13 +125,15 @@ TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
 
     ret = uuid_to_fname(po, bh_buffer, BH_BUFFER_LEN);
     if (ret) {
-        return lsfs_err_to_tee_res(ret);
+        ret = lsfs_err_to_tee_res(ret);
+        goto err_out;
     }
 
     ret = lfs_file_open(fs_handle, file_handle, (char *)bh_buffer, lfs_flags);
     if (ret) {
         EMSG("ERROR: %d: %p", ret, file_handle);
-        return lsfs_err_to_tee_res(ret);
+        ret = lsfs_err_to_tee_res(ret);
+        goto err_out;
     }
 
     ret = lfs_file_size(fs_handle, file_handle);
@@ -135,7 +141,9 @@ TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
         EMSG("ERROR: %d: %p", ret, file_handle);
         lfs_file_close(fs_handle, file_handle);
         free(file_handle);
-        return lsfs_err_to_tee_res(ret);
+
+        ret = lsfs_err_to_tee_res(ret);
+        goto err_out;
     }
 
     *size = ret;
@@ -145,19 +153,23 @@ TEE_Result ramdisk_fs_open(struct tee_pobj *po, size_t *size,
     IMSG("handle: %p, size: %ld", file_handle, *size);
 
     return 0;
+
+err_out:
+    free(file_handle);
+
+    return ret;
 }
 
-TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
+static TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
                  const void *head, size_t head_size,
                  const void *attr, size_t attr_size,
                  const void *data, size_t data_size,
                  struct tee_file_handle **fh)
 {
     int ret = -1;
-    lfs_file_t *file_handle = calloc(1, sizeof(lfs_file_t));
+    lfs_file_t *file_handle = NULL;
 
-    /* include only RW flags, create a file if it does not exist */
-    int lfs_flags = (po->flags & 0x3) | LFS_O_CREAT;
+    int lfs_flags = 0;
 
     uint32_t pos = 0;
 
@@ -165,6 +177,11 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
         EMSG("ERROR: arguments");
         return TEE_ERROR_BAD_PARAMETERS;
     }
+
+    /* include only RW flags, create a file if it does not exist */
+    lfs_flags = (po->flags & 0x3) | LFS_O_CREAT;
+
+    file_handle = calloc(1, sizeof(lfs_file_t));
 
     if (!file_handle) {
         EMSG("ERROR: out of memory");
@@ -227,12 +244,12 @@ TEE_Result ramdisk_fs_create(struct tee_pobj *po, bool overwrite,
 
 out_file_cleanup:
     lfs_file_close(fs_handle, file_handle);
-    free(file_handle);
 out:
+    free(file_handle);
     return lsfs_err_to_tee_res(ret);
 }
 
-void ramdisk_fs_close(struct tee_file_handle **fh)
+static void ramdisk_fs_close(struct tee_file_handle **fh)
 {
     lfs_file_t *file_handle = (lfs_file_t *) *fh;
 
@@ -247,7 +264,7 @@ void ramdisk_fs_close(struct tee_file_handle **fh)
     *fh = NULL;
 }
 
-TEE_Result ramdisk_fs_read(struct tee_file_handle *fh, size_t pos,
+static TEE_Result ramdisk_fs_read(struct tee_file_handle *fh, size_t pos,
                void *buf, size_t *len)
 {
     int ret = -1;
@@ -277,7 +294,7 @@ TEE_Result ramdisk_fs_read(struct tee_file_handle *fh, size_t pos,
     return 0;
 }
 
-TEE_Result ramdisk_fs_write(struct tee_file_handle *fh, size_t pos,
+static TEE_Result ramdisk_fs_write(struct tee_file_handle *fh, size_t pos,
                 const void *buf, size_t len)
 {
     int ret = -1;
@@ -314,7 +331,7 @@ out:
     return lsfs_err_to_tee_res(ret);
 }
 
-TEE_Result ramdisk_fs_truncate(struct tee_file_handle *fh, size_t size)
+static TEE_Result ramdisk_fs_truncate(struct tee_file_handle *fh, size_t size)
 {
     int ret = -1;
     lfs_file_t *file_handle = (lfs_file_t *) fh;
@@ -334,14 +351,14 @@ TEE_Result ramdisk_fs_truncate(struct tee_file_handle *fh, size_t size)
     return lsfs_err_to_tee_res(ret);
 }
 
-TEE_Result ramdisk_fs_rename(struct tee_pobj *old_po, struct tee_pobj *new_po,
+static TEE_Result ramdisk_fs_rename(struct tee_pobj *old_po, struct tee_pobj *new_po,
                  bool overwrite)
 {
     EMSG("ERROR: not implemented");
     return TEE_ERROR_NOT_IMPLEMENTED;
 }
 
-TEE_Result ramdisk_fs_remove(struct tee_pobj *po)
+static TEE_Result ramdisk_fs_remove(struct tee_pobj *po)
 {
     int ret = -1;
 
@@ -363,18 +380,18 @@ TEE_Result ramdisk_fs_remove(struct tee_pobj *po)
     return lsfs_err_to_tee_res(ret);
 }
 
-TEE_Result ramdisk_fs_opendir(const TEE_UUID *uuid, struct tee_fs_dir **d)
+static TEE_Result ramdisk_fs_opendir(const TEE_UUID *uuid, struct tee_fs_dir **d)
 {
     EMSG("ERROR: not implemented");
     return TEE_ERROR_NOT_IMPLEMENTED;
 }
 
-void ramdisk_fs_closedir(struct tee_fs_dir *d)
+static void ramdisk_fs_closedir(struct tee_fs_dir *d)
 {
     EMSG("ERROR: not implemented");
 }
 
-TEE_Result ramdisk_fs_readdir(struct tee_fs_dir *d, struct tee_fs_dirent **ent)
+static TEE_Result ramdisk_fs_readdir(struct tee_fs_dir *d, struct tee_fs_dirent **ent)
 {
     EMSG("ERROR: not implemented");
     return TEE_ERROR_NOT_IMPLEMENTED;
